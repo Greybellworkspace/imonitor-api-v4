@@ -12,6 +12,8 @@ import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
 import { HealthModule } from './health/health.module';
+import { AuthEndpointsModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -39,6 +41,8 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     AuthModule,
     SharedModule,
     HealthModule,
+    AuthEndpointsModule,
+    UsersModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
