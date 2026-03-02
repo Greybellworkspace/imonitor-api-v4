@@ -68,6 +68,16 @@ const appErrorFormat = winston.format.combine(
   }),
 );
 
+// Log configuration from env vars (defaults match v3 values)
+const LOG_DIR = process.env.LOG_DIR || 'logs';
+const LOG_COMBINED_MAX_SIZE = parseInt(process.env.LOG_COMBINED_MAX_SIZE || '30000000', 10);
+const LOG_ERROR_MAX_FILES = process.env.LOG_ERROR_MAX_FILES || '7d';
+const LOG_ERROR_MAX_SIZE = process.env.LOG_ERROR_MAX_SIZE || '20m';
+const LOG_EMERG_MAX_FILES = process.env.LOG_EMERG_MAX_FILES || '7d';
+const LOG_EMERG_MAX_SIZE = process.env.LOG_EMERG_MAX_SIZE || '20m';
+const LOG_APP_ERROR_MAX_FILES = process.env.LOG_APP_ERROR_MAX_FILES || '5d';
+const LOG_APP_ERROR_MAX_SIZE = process.env.LOG_APP_ERROR_MAX_SIZE || '20m';
+
 const winstonLogger = winston.createLogger({
   levels: customLevels.levels,
   level: level(),
@@ -77,47 +87,47 @@ const winstonLogger = winston.createLogger({
       format: consoleFormat,
     }),
 
-    // Combined log — rolling by size (30MB, 1 file)
+    // Combined log — rolling by size
     new winston.transports.File({
-      filename: 'logs/combined.log',
+      filename: `${LOG_DIR}/combined.log`,
       level: level(),
       maxFiles: 1,
-      maxsize: 30_000_000,
+      maxsize: LOG_COMBINED_MAX_SIZE,
       format: fileJsonFormat,
     }),
 
-    // Error daily rotate — 7 days, 20MB, gzipped
+    // Error daily rotate — gzipped
     new winston.transports.DailyRotateFile({
-      filename: 'logs/error/error-%DATE%.log',
+      filename: `${LOG_DIR}/error/error-%DATE%.log`,
       datePattern: 'YYYY-MM-DD',
       level: 'error',
-      maxFiles: '7d',
-      maxSize: '20m',
-      auditFile: 'logs/config/error-config.json',
+      maxFiles: LOG_ERROR_MAX_FILES,
+      maxSize: LOG_ERROR_MAX_SIZE,
+      auditFile: `${LOG_DIR}/config/error-config.json`,
       zippedArchive: true,
       format: fileJsonFormat,
     }),
 
-    // Emergency daily rotate — 7 days, 20MB, gzipped
+    // Emergency daily rotate — gzipped
     new winston.transports.DailyRotateFile({
-      filename: 'logs/emergency/emergency-%DATE%.log',
+      filename: `${LOG_DIR}/emergency/emergency-%DATE%.log`,
       datePattern: 'YYYY-MM-DD',
       level: 'emerg',
-      maxFiles: '7d',
-      maxSize: '20m',
-      auditFile: 'logs/config/emergency-config.json',
+      maxFiles: LOG_EMERG_MAX_FILES,
+      maxSize: LOG_EMERG_MAX_SIZE,
+      auditFile: `${LOG_DIR}/config/emergency-config.json`,
       zippedArchive: true,
       format: fileJsonFormat,
     }),
 
-    // App errors daily rotate — HTTP errors only, 5 days, 20MB, gzipped
+    // App errors daily rotate — HTTP errors only, gzipped
     new winston.transports.DailyRotateFile({
-      filename: 'logs/app-errors/app-error-%DATE%.json',
+      filename: `${LOG_DIR}/app-errors/app-error-%DATE%.json`,
       datePattern: 'YYYY-MM-DD',
       level: 'error',
-      maxFiles: '5d',
-      maxSize: '20m',
-      auditFile: 'logs/config/app-error-config.json',
+      maxFiles: LOG_APP_ERROR_MAX_FILES,
+      maxSize: LOG_APP_ERROR_MAX_SIZE,
+      auditFile: `${LOG_DIR}/config/app-error-config.json`,
       zippedArchive: true,
       format: appErrorFormat,
     }),

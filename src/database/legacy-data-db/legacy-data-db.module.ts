@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LegacyDataDbService } from './legacy-data-db.service';
+import { MYSQL_POOL_DEFAULTS, mysqlTypeCast } from '../database.constants';
 
 export const LEGACY_DATA_DB = 'LEGACY_DATA_DB';
 export const LEGACY_DATA_LIMITED_DB = 'LEGACY_DATA_LIMITED_DB';
@@ -21,15 +22,8 @@ export const LEGACY_DATA_LIMITED_DB = 'LEGACY_DATA_LIMITED_DB';
           database: configService.get<string>('dataDbName', 'iMonitorData').replace(/`/g, ''),
           decimalNumbers: true,
           multipleStatements: true,
-          connectionLimit: 5,
-          enableKeepAlive: true,
-          keepAliveInitialDelay: 1000,
-          typeCast: (field: any, next: () => any) => {
-            if (field.type === 'VAR_STRING') {
-              return field.string();
-            }
-            return next();
-          },
+          ...MYSQL_POOL_DEFAULTS,
+          typeCast: mysqlTypeCast,
         });
       },
     },
@@ -45,15 +39,8 @@ export const LEGACY_DATA_LIMITED_DB = 'LEGACY_DATA_LIMITED_DB';
           port: configService.get<number>('DB_PORT'),
           database: configService.get<string>('dataDbName', 'iMonitorData').replace(/`/g, ''),
           decimalNumbers: true,
-          connectionLimit: 5,
-          enableKeepAlive: true,
-          keepAliveInitialDelay: 1000,
-          typeCast: (field: any, next: () => any) => {
-            if (field.type === 'VAR_STRING') {
-              return field.string();
-            }
-            return next();
-          },
+          ...MYSQL_POOL_DEFAULTS,
+          typeCast: mysqlTypeCast,
         });
       },
     },

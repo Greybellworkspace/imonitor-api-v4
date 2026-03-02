@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LegacyEtlDbService } from './legacy-etl-db.service';
+import { MYSQL_POOL_DEFAULTS, mysqlTypeCast } from '../database.constants';
 
 export const LEGACY_ETL_DB = 'LEGACY_ETL_DB';
 
@@ -20,15 +21,8 @@ export const LEGACY_ETL_DB = 'LEGACY_ETL_DB';
           database: configService.get<string>('etlDbName', 'EtlV3_2').replace(/`/g, ''),
           decimalNumbers: true,
           multipleStatements: true,
-          connectionLimit: 5,
-          enableKeepAlive: true,
-          keepAliveInitialDelay: 1000,
-          typeCast: (field: any, next: () => any) => {
-            if (field.type === 'VAR_STRING') {
-              return field.string();
-            }
-            return next();
-          },
+          ...MYSQL_POOL_DEFAULTS,
+          typeCast: mysqlTypeCast,
         });
       },
     },

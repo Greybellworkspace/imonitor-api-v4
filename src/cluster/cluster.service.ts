@@ -8,7 +8,7 @@ import { setupMaster } from '@socket.io/sticky';
 export class ClusterService {
   private static readonly logger = new Logger('ClusterService');
 
-  static clusterize(callback: () => void, numCpusToUse: number): void {
+  static clusterize(callback: () => void, numCpusToUse: number, port = 5011): void {
     const numCPUs = cpus().length;
     const workersToFork = Math.min(numCpusToUse, numCPUs);
 
@@ -22,7 +22,9 @@ export class ClusterService {
         loadBalancingMethod: 'round-robin',
       });
 
-      const port = parseInt(process.env.PORT || '5011', 10);
+      httpServer.on('error', (err) => {
+        ClusterService.logger.error(`Sticky session server error: ${err.message}`);
+      });
       httpServer.listen(port, () => {
         ClusterService.logger.warn(`Sticky session server listening on port ${port}`);
       });
