@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -28,10 +29,24 @@ async function bootstrap() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+  // Swagger API documentation (non-production or behind SWAGGER_ENABLED flag)
+  const configService = app.get(ConfigService);
+  const swaggerEnabled = configService.get<string>('SWAGGER_ENABLED', 'true') !== 'false';
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('iMonitor API v4')
+      .setDescription('Enterprise telecom monitoring API — real-time dashboards, automated reporting, and customer care operations')
+      .setVersion('4.0.0')
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api-docs', app, document);
+    logger.log('Swagger UI available at /api-docs', 'Bootstrap');
+  }
+
   // Enable graceful shutdown hooks (OnModuleDestroy lifecycle)
   app.enableShutdownHooks();
 
-  const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 5011);
 
   await app.listen(port);
