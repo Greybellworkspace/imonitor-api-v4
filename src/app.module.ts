@@ -28,7 +28,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
         abortEarly: false,
       },
     }),
-    EventEmitterModule.forRoot(),
+    EventEmitterModule.forRoot({ maxListeners: 50 }),
     DatabaseModule,
     LegacyDataDbModule,
     LegacyEtlDbModule,
