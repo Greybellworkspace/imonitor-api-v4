@@ -1,10 +1,6 @@
 import { PaginationDto } from '../dto/pagination.dto';
 
-export function getPagination(
-  page: number,
-  size: number,
-  defaultLimit = 10,
-): { limit: number; offset: number } {
+export function getPagination(page: number, size: number, defaultLimit = 10): { limit: number; offset: number } {
   const limit = size > 0 ? size : defaultLimit;
   const offset = page > 0 ? page * limit : 0;
   return { limit, offset };

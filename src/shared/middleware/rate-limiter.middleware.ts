@@ -52,10 +52,7 @@ export class RateLimiterMiddleware implements NestMiddleware {
       if (err.consumedPoints === this.rateLimiter.points + 1) {
         this.logger.warn(`Rate limit exceeded for IP: ${remoteIp}`);
         try {
-          await this.dataSource.query(
-            'INSERT INTO core_rate_limiter (ipAddress) VALUES (?)',
-            [remoteIp],
-          );
+          await this.dataSource.query('INSERT INTO core_rate_limiter (ipAddress) VALUES (?)', [remoteIp]);
         } catch (dbErr: unknown) {
           this.logger.error(`Failed to log blocked IP: ${(dbErr as Error).message}`);
         }

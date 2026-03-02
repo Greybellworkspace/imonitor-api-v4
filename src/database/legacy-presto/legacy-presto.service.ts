@@ -18,7 +18,7 @@ export class LegacyPrestoService {
    */
   private getClient(): any {
     if (!this.client) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Client } = require('presto-client');
       this.client = new Client({
         host: this.prestoConfig.host,

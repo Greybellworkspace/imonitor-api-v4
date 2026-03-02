@@ -65,9 +65,6 @@ export class CoreWidgetBuilder {
   @OneToMany(() => CoreWidgetBuilderModule, (module) => module.widgetBuilder)
   modules: CoreWidgetBuilderModule[];
 
-  @OneToMany(
-    () => CoreWidgetBuilderUsedTables,
-    (usedTable) => usedTable.widgetBuilder,
-  )
+  @OneToMany(() => CoreWidgetBuilderUsedTables, (usedTable) => usedTable.widgetBuilder)
   usedTables: CoreWidgetBuilderUsedTables[];
 }

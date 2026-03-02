@@ -1,4 +1,4 @@
-import { Module, Global, OnModuleDestroy } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LegacyDataDbService } from './legacy-data-db.service';
 

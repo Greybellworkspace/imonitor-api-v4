@@ -1,11 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-  ManyToOne,
-  JoinColumn,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, Index, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { CoreWidgetBuilder } from './core-widget-builder.entity';
 
 @Entity('core_widget_builder_used_tables')

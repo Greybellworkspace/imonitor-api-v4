@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 /**
  * NOTE: The SQL definition for this table has NO PRIMARY KEY and all columns are nullable.

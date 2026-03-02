@@ -63,8 +63,6 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Middleware order: request filter → rate limiter → correlation ID → routes
-    consumer
-      .apply(RequestFilterMiddleware, RateLimiterMiddleware, CorrelationIdMiddleware)
-      .forRoutes('*');
+    consumer.apply(RequestFilterMiddleware, RateLimiterMiddleware, CorrelationIdMiddleware).forRoutes('*');
   }
 }

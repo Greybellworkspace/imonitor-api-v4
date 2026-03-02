@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  Index,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CoreReport } from './core-report.entity';
 
 @Entity('core_shared_report')

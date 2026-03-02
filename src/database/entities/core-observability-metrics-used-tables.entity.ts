@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Index,
-  ManyToOne,
-  JoinColumn,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Index, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { CoreObservabilityMetrics } from './core-observability-metrics.entity';
 
 @Entity('core_observability_metrics_used_tables')
