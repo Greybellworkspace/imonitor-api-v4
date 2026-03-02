@@ -35,7 +35,9 @@ async function bootstrap() {
   if (swaggerEnabled) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('iMonitor API v4')
-      .setDescription('Enterprise telecom monitoring API — real-time dashboards, automated reporting, and customer care operations')
+      .setDescription(
+        'Enterprise telecom monitoring API — real-time dashboards, automated reporting, and customer care operations',
+      )
       .setVersion('4.0.0')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
       .build();
