@@ -12,7 +12,7 @@ export class CoreRequestsArchive {
   @Column({ type: 'varchar', length: 11, nullable: false })
   type: string;
 
-  @Column({ type: 'text', nullable: false })
+  @Column({ type: 'longtext', nullable: false })
   endpoint: string;
 
   @Index('requestDate_idx')
@@ -22,7 +22,7 @@ export class CoreRequestsArchive {
   @Column({ type: 'varchar', length: 70, nullable: true, default: null })
   userid: string | null;
 
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'longtext', nullable: true, default: null })
   payload: string | null;
 
   @Column({ type: 'varchar', length: 200, nullable: true, default: null })

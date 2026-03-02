@@ -24,7 +24,7 @@ export class CoreObservabilityDashboard {
   @Column({ type: 'datetime', nullable: true, default: null })
   updatedAt: Date | null;
 
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'longtext', nullable: true, default: null })
   title: string | null;
 
   @Column({ type: 'tinyint', width: 4, nullable: false, default: 0 })
