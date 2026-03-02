@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 @Entity('core_observability_dashboard')
 export class CoreObservabilityDashboard {
@@ -24,7 +20,7 @@ export class CoreObservabilityDashboard {
   @Column({ type: 'datetime', nullable: true, default: null })
   updatedAt: Date | null;
 
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'longtext', nullable: true, default: null })
   title: string | null;
 
   @Column({ type: 'tinyint', width: 4, nullable: false, default: 0 })

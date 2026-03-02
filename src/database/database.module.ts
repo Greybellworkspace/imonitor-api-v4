@@ -15,11 +15,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('coreDbName', 'iMonitorV3_1').replace(/`/g, ''),
         entities: [__dirname + '/entities/**/*.entity{.ts,.js}'],
+        autoLoadEntities: true,
         synchronize: false,
         migrationsRun: false,
         logging: ['error', 'warn'],
         extra: {
-          connectionLimit: 15,
+          connectionLimit: 5,
           enableKeepAlive: true,
           keepAliveInitialDelay: 1000,
         },

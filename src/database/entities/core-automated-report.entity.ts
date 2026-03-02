@@ -85,10 +85,10 @@ export class CoreAutomatedReport {
   @Column({ type: 'varchar', length: 100, nullable: true, default: null })
   emailSubject: string | null;
 
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'longtext', nullable: true, default: null })
   emailDescription: string | null;
 
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'longtext', nullable: true, default: null })
   errorStack: string | null;
 
   @Column({ type: 'datetime', nullable: true, default: null })

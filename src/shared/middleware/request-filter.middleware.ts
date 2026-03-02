@@ -11,17 +11,9 @@ import { Request, Response, NextFunction } from 'express';
 export class RequestFilterMiddleware implements NestMiddleware {
   private readonly logger = new Logger(RequestFilterMiddleware.name);
 
-  private static readonly SUSPICIOUS_PATTERNS: RegExp[] = [
-    /\.%/,
-    /%2e%2e/i,
-    /%c0%ae/i,
-    /%e0%80%ae/i,
-    /cgi-bin/,
-  ];
+  private static readonly SUSPICIOUS_PATTERNS: RegExp[] = [/\.%/, /%2e%2e/i, /%c0%ae/i, /%e0%80%ae/i, /cgi-bin/];
 
-  constructor(
-    @InjectDataSource() private readonly dataSource: DataSource,
-  ) {}
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -34,9 +26,7 @@ export class RequestFilterMiddleware implements NestMiddleware {
       }
     }
 
-    const isSuspicious = RequestFilterMiddleware.SUSPICIOUS_PATTERNS.some(
-      (pattern) => pattern.test(req.originalUrl),
-    );
+    const isSuspicious = RequestFilterMiddleware.SUSPICIOUS_PATTERNS.some((pattern) => pattern.test(req.originalUrl));
 
     if (isSuspicious) {
       await this.processMaliciousRequest(req);

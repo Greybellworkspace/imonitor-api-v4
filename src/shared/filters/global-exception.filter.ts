@@ -1,10 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApplicationException } from '../exceptions/application.exceptions';
 
@@ -44,35 +38,36 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return;
       }
 
-      // Format B: Standard HttpException — message only
+      // Format B: Standard HttpException — message + optional errors array
       const message =
-        typeof exceptionResponse === 'string'
-          ? exceptionResponse
-          : exceptionResponse.message || exception.message;
+        typeof exceptionResponse === 'string' ? exceptionResponse : exceptionResponse.message || exception.message;
 
-      response.status(status).json({
+      const responseBody: Record<string, unknown> = {
         status,
         message,
         success: false,
-      });
+      };
+
+      // Preserve errors array from BadRequestException (e.g. class-validator)
+      if (typeof exceptionResponse === 'object' && Array.isArray(exceptionResponse.errors)) {
+        responseBody.errors = exceptionResponse.errors;
+      }
+
+      response.status(status).json(responseBody);
       return;
     }
 
     // Raw Error (500) — matching v3's catch-all handler
     const err = exception instanceof Error ? exception : new Error(String(exception));
 
-    this.logger.error(
-      `###500### \n message - ${err.message}, stack trace - ${err.stack}`,
-    );
+    this.logger.error(`###500### \n message - ${err.message}, stack trace - ${err.stack}`);
 
     const status = 500;
     const isProd = process.env.NODE_ENV === 'production';
 
     response.status(status).json({
       status,
-      message: isProd
-        ? 'Something went Wrong...'
-        : err.message,
+      message: isProd ? 'Something went Wrong...' : err.message,
       success: false,
       errors: isProd ? undefined : [{ message: err.message, stack: err.stack }],
     });

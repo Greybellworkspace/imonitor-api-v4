@@ -22,6 +22,11 @@ export class ClusterService {
         loadBalancingMethod: 'round-robin',
       });
 
+      const port = parseInt(process.env.PORT || '5011', 10);
+      httpServer.listen(port, () => {
+        ClusterService.logger.warn(`Sticky session server listening on port ${port}`);
+      });
+
       // Fork workers
       for (let i = 0; i < workersToFork; i++) {
         cluster.fork();
@@ -32,12 +37,24 @@ export class ClusterService {
       });
 
       // Auto-restart dead workers
+      let shuttingDown = false;
       cluster.on('exit', (worker) => {
         ClusterService.logger.warn(`Worker ${worker.process.pid} died`);
+        if (shuttingDown) return;
         const activeWorkers = Object.values(cluster.workers || {}).length;
         if (activeWorkers < workersToFork) {
           ClusterService.logger.warn('Starting replacement worker...');
           cluster.fork();
+        }
+      });
+
+      // Graceful shutdown on SIGTERM — stop accepting, let workers finish
+      process.on('SIGTERM', () => {
+        ClusterService.logger.warn('SIGTERM received — shutting down cluster gracefully');
+        shuttingDown = true;
+        httpServer.close();
+        for (const id in cluster.workers) {
+          cluster.workers[id]?.process.kill('SIGTERM');
         }
       });
     } else {

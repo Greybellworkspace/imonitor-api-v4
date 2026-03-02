@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  Index,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CoreRotatingDashboard } from './core-rotating-dashboard.entity';
 
 @Entity('core_shared_rotating_dashboard')
@@ -28,11 +21,7 @@ export class CoreSharedRotatingDashboard {
   @Column({ type: 'tinyint', width: 1, nullable: false, default: 0 })
   isFavorite: boolean;
 
-  @ManyToOne(
-    () => CoreRotatingDashboard,
-    (rd) => rd.sharedRotatingDashboards,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => CoreRotatingDashboard, (rd) => rd.sharedRotatingDashboards, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rotatingDashboardId' })
   @Index('rotatingDashBoardId_fk')
   rotatingDashboard: CoreRotatingDashboard;

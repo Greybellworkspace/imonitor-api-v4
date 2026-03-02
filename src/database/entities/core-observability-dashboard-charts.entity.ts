@@ -1,9 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, Index, PrimaryColumn } from 'typeorm';
 
 /**
  * NOTE: The SQL definition for this table has NO PRIMARY KEY.

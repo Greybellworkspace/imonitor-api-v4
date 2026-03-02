@@ -1,11 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-  ManyToOne,
-  JoinColumn,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Index, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { CoreObservabilityCharts } from './core-observability-charts.entity';
 import { CoreObservabilityMetrics } from './core-observability-metrics.entity';
 

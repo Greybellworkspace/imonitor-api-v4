@@ -30,9 +30,6 @@ export class CoreRotatingDashboard {
   @Column({ type: 'datetime', nullable: true, default: null })
   updatedAt: Date | null;
 
-  @OneToMany(
-    () => CoreSharedRotatingDashboard,
-    (shared) => shared.rotatingDashboard,
-  )
+  @OneToMany(() => CoreSharedRotatingDashboard, (shared) => shared.rotatingDashboard)
   sharedRotatingDashboards: CoreSharedRotatingDashboard[];
 }

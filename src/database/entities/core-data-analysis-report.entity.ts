@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Index,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CoreDataAnalysis } from './core-data-analysis.entity';
 
 @Entity('core_data_analysis_report')

@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Index,
-  ManyToOne,
-  JoinColumn,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Index, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { CoreReport } from './core-report.entity';
 import { CoreModules } from './core-modules.entity';
 

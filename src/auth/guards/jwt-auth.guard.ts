@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -80,10 +74,9 @@ export class JwtAuthGuard implements CanActivate {
     // Check keepLogin flag — if true, skip expiration validation
     let ignoreExpiration = false;
     try {
-      const result = await this.dataSource.query(
-        'SELECT keepLogin FROM core_application_users WHERE id = ?',
-        [decoded.id],
-      );
+      const result = await this.dataSource.query('SELECT keepLogin FROM core_application_users WHERE id = ?', [
+        decoded.id,
+      ]);
       if (result.length > 0 && result[0].keepLogin) {
         ignoreExpiration = true;
       }
@@ -104,7 +97,7 @@ export class JwtAuthGuard implements CanActivate {
       }) as JwtPayload;
       request.user = verified;
       return true;
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
     }
   }

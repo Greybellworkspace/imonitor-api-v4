@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Index,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { CoreNotificationSettings } from './core-notification-settings.entity';
 import { CoreApplicationUsers } from './core-application-users.entity';
 
@@ -33,11 +27,7 @@ export class CoreNotificationUsers {
   })
   status: NotificationUserStatus;
 
-  @ManyToOne(
-    () => CoreNotificationSettings,
-    (ns) => ns.notificationUsers,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => CoreNotificationSettings, (ns) => ns.notificationUsers, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'notificationId' })
   @Index('Constr_usernotification_notification_fk')
   notificationSetting: CoreNotificationSettings;

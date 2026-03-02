@@ -40,9 +40,6 @@ export class CoreNotificationSettings {
   @OneToMany(() => CoreNotificationSent, (sent) => sent.notificationSetting)
   notificationsSent: CoreNotificationSent[];
 
-  @OneToMany(
-    () => CoreNotificationUsers,
-    (nu) => nu.notificationSetting,
-  )
+  @OneToMany(() => CoreNotificationUsers, (nu) => nu.notificationSetting)
   notificationUsers: CoreNotificationUsers[];
 }

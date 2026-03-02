@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -40,10 +34,9 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     try {
-      const result = await this.dataSource.query(
-        'SELECT confVal FROM core_sys_config WHERE confKey = ?',
-        [SystemKeys.utilityApiKey],
-      );
+      const result = await this.dataSource.query('SELECT confVal FROM core_sys_config WHERE confKey = ?', [
+        SystemKeys.utilityApiKey,
+      ]);
 
       if (!result || result.length === 0) {
         this.logger.error('utilityApiKey not found in core_sys_config');

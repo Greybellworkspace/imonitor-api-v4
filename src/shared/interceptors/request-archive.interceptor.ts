@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Observable } from 'rxjs';
@@ -63,9 +57,7 @@ export class RequestArchiveInterceptor implements NestInterceptor {
       userId = request.body.credential;
     }
 
-    const payload = request.body && Object.keys(request.body).length > 0
-      ? JSON.stringify(request.body)
-      : null;
+    const payload = request.body && Object.keys(request.body).length > 0 ? JSON.stringify(request.body) : null;
 
     const data = {
       type: request.method,

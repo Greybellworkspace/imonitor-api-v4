@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-} from 'typeorm';
+import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 @Entity('core_observability_metrics')
 export class CoreObservabilityMetrics {
