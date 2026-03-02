@@ -22,6 +22,11 @@ export class ClusterService {
         loadBalancingMethod: 'round-robin',
       });
 
+      const port = parseInt(process.env.PORT || '5011', 10);
+      httpServer.listen(port, () => {
+        ClusterService.logger.warn(`Sticky session server listening on port ${port}`);
+      });
+
       // Fork workers
       for (let i = 0; i < workersToFork; i++) {
         cluster.fork();
