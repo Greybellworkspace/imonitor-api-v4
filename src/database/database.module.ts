@@ -20,7 +20,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         migrationsRun: false,
         logging: ['error', 'warn'],
         extra: {
-          connectionLimit: 15,
+          connectionLimit: 5,
           enableKeepAlive: true,
           keepAliveInitialDelay: 1000,
         },

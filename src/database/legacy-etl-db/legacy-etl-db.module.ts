@@ -20,7 +20,7 @@ export const LEGACY_ETL_DB = 'LEGACY_ETL_DB';
           database: configService.get<string>('etlDbName', 'EtlV3_2').replace(/`/g, ''),
           decimalNumbers: true,
           multipleStatements: true,
-          connectionLimit: 15,
+          connectionLimit: 5,
           enableKeepAlive: true,
           keepAliveInitialDelay: 1000,
           typeCast: (field: any, next: () => any) => {
