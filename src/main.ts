@@ -55,9 +55,10 @@ async function bootstrap() {
 
 async function main() {
   const cpus = parseInt(process.env.CPUS || '1', 10);
+  const port = parseInt(process.env.PORT || '5011', 10);
 
   if (cpus > 1) {
-    ClusterService.clusterize(bootstrap, cpus);
+    ClusterService.clusterize(bootstrap, cpus, port);
   } else {
     bootstrap();
   }
