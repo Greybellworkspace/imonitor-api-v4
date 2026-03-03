@@ -1,0 +1,17 @@
+{
+  "id": "phase3.2-core-features_20260303",
+  "title": "Phase 3.2: Core Features (Modules, Parameters, NodeDefinition)",
+  "type": "feature",
+  "status": "complete",
+  "created": "2026-03-03T00:00:00.000Z",
+  "updated": "2026-03-03T20:30:00.000Z",
+  "branch": "migration/phase-3.2-core-features",
+  "phases": {
+    "total": 7,
+    "completed": 7
+  },
+  "tasks": {
+    "total": 25,
+    "completed": 25
+  }
+}

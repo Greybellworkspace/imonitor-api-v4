@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 214 tests, 16 suites
+npm test               # Jest unit tests — 316 tests, 22 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -27,7 +27,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 1: Scaffolding | `migration/phase-1-scaffolding-typeorm` | Done | — |
 | 2: Core Architecture | `migration/phase-2-core-architecture` | Done | — |
 | 3.1: Auth & Users | `migration/phase-3.1-auth-users` | Done | `v0.3.1-migration-phase3.1` |
-| 3.2: Core Features | `migration/phase-3.2-core-features` | Pending | — |
+| 3.2: Core Features | `migration/phase-3.2-core-features` | Done | — |
 | 3.3: Reporting | `migration/phase-3.3-reporting` | Pending | — |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Pending | — |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
@@ -77,7 +77,10 @@ src/
 │   └── legacy-presto/         # Presto client
 ├── modules/
 │   ├── auth/                  # Auth endpoints (login, logout, refresh, heartbeat, access)
-│   └── users/                 # Users CRUD, privileges, passwords, settings
+│   ├── users/                 # Users CRUD, privileges, passwords, settings
+│   ├── modules/               # Module metadata — reports & widget builders by module
+│   ├── parameters/            # Dynamic param tables — CRUD + Excel export
+│   └── node-definition/       # Dynamic node definition tables — CRUD + Excel export
 └── shared/                    # Global: constants, DTOs, enums, events, filters, helpers,
                                #   interceptors, middleware, pipes, services
 ```
@@ -88,8 +91,9 @@ src/
 - `APP_INTERCEPTOR` → `TransformInterceptor` wraps responses: `{ success, status, message, result }`
 - `APP_FILTER` → `GlobalExceptionFilter`
 - Middleware order: `RequestFilterMiddleware` → `RateLimiterMiddleware` → `CorrelationIdMiddleware`
-- `CoreDataModule` (global) registers repos for 6 core entities (users, roles, refresh tokens, privileges, modules, min-privileges)
-- `SharedModule` (global) exports `DateHelperService`, `PasswordService`, `SystemConfigService`
+- `CoreDataModule` (global) registers repos for 9 core entities (users, roles, refresh tokens, privileges, modules, min-privileges, modules-tables, tables-field, params-table-relations)
+- `SharedModule` (global) exports `DateHelperService`, `PasswordService`, `SystemConfigService`, `EncryptionHelperService`, `ExportHelperService`
+- `DynamicTableService` (abstract) — Template Method base for Parameters (`tableType='param'`) and NodeDefinition (`tableType='nodes'`). Dynamic SQL with `sanitizeIdentifier()` [S-01], `validateDateFormat()` [S-02], and `AES_ENCRYPT`/`AES_DECRYPT` via `field.isEncrypted` [S-10]. Queries run against iMonitorData via `LegacyDataDbService`.
 
 ## Auth System
 
@@ -134,6 +138,15 @@ superadmin > admin > superuser > user > N/A
 
 ### Users (`api/v1/users`) — all JWT + PrivilegeGuard
 POST `/register`, GET `/` `/all` `/emails` `/me` `/sidemenu` `/module/:name/role` `/:id` `/:id/privileges`, PUT `/theme` `/` `/:id` `/:id/privileges` `/:id/lock` `/:id/unlock`, PATCH `/resetpassword` `/changepassword/:id`, DELETE `/:id`, GET `/settings` `/settings/:name`
+
+### Modules (`api/v1/modules`) — all JWT + PrivilegeGuard
+GET `/reports` `/widgetbuilders` `/:id/report` `/:id/widgetbuilder`
+
+### Parameters (`api/v1/paramstable`) — all JWT + PrivilegeGuard
+GET `/` `/export/excel` `/export/excel/:id` `/:id`, POST `/`, PUT `/`
+
+### Node Definition (`api/v1/nodedefinition`) — all JWT + PrivilegeGuard
+GET `/` `/export/excel` `/export/excel/:id` `/:id`, POST `/`, PUT `/`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB

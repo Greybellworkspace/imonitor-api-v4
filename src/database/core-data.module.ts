@@ -6,6 +6,9 @@ import { CoreApplicationRefreshToken } from './entities/core-application-refresh
 import { CorePrivileges } from './entities/core-privileges.entity';
 import { CoreModules } from './entities/core-modules.entity';
 import { CoreMinimumPrivileges } from './entities/core-minimum-privileges.entity';
+import { CoreModulesTables } from './entities/core-modules-tables.entity';
+import { CoreTablesField } from './entities/core-tables-field.entity';
+import { CoreParamsTableRelations } from './entities/core-params-table-relations.entity';
 
 @Global()
 @Module({
@@ -17,6 +20,9 @@ import { CoreMinimumPrivileges } from './entities/core-minimum-privileges.entity
       CorePrivileges,
       CoreModules,
       CoreMinimumPrivileges,
+      CoreModulesTables,
+      CoreTablesField,
+      CoreParamsTableRelations,
     ]),
   ],
   exports: [TypeOrmModule],
