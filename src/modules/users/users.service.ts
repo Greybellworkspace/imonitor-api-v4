@@ -88,7 +88,15 @@ export class UsersService {
   async getUserById(id: string): Promise<UserResponseDto> {
     const user = await this.usersRepo.findOne({
       where: { id, isDeleted: false },
-      select: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'userName', 'theme'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phoneNumber: true,
+        userName: true,
+        theme: true,
+      },
     });
 
     if (!user) {
@@ -151,7 +159,7 @@ export class UsersService {
   async getEmails(): Promise<string[]> {
     const users = await this.usersRepo.find({
       where: { isDeleted: false },
-      select: ['email'],
+      select: { email: true },
       order: { firstName: 'ASC' },
     });
 

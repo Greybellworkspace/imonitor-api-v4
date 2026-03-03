@@ -27,7 +27,7 @@ export class UserPrivilegesService {
     // Bulk load all modules + all user privileges (2 queries total)
     const [allModules, allPrivileges] = await Promise.all([
       this.modulesRepo.find({ order: { priority: 'ASC' } }),
-      this.privilegesRepo.find({ where: { userId }, relations: ['role'] }),
+      this.privilegesRepo.find({ where: { userId }, relations: { role: true } }),
     ]);
 
     const privMap = new Map(allPrivileges.map((p) => [p.moduleId, p.role?.name ?? AvailableRoles.DEFAULT]));
@@ -71,7 +71,7 @@ export class UserPrivilegesService {
     // Bulk load all modules + all user privileges (2 queries total)
     const [allModules, allPrivileges] = await Promise.all([
       this.modulesRepo.find({ order: { priority: 'ASC' } }),
-      this.privilegesRepo.find({ where: { userId }, relations: ['role'] }),
+      this.privilegesRepo.find({ where: { userId }, relations: { role: true } }),
     ]);
 
     const privMap = new Map(allPrivileges.map((p) => [p.moduleId, p.role?.name ?? AvailableRoles.DEFAULT]));
@@ -90,7 +90,7 @@ export class UserPrivilegesService {
 
     const privilege = await this.privilegesRepo.findOne({
       where: { userId, moduleId: parseInt(mod.id, 10) },
-      relations: ['role'],
+      relations: { role: true },
     });
 
     return privilege?.role?.name ?? null;

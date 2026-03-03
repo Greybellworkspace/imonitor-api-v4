@@ -93,6 +93,7 @@ describe('AuthService', () => {
     };
     systemConfigService = {
       getConfigValue: jest.fn().mockResolvedValue('30'),
+      getConfigValues: jest.fn().mockResolvedValue({ tokenExpiryInMinutes: '30', rtokenExpiryInMinutes: '10080' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CoreMinimumPrivileges } from '../../database/entities/core-minimum-privileges.entity';
@@ -9,12 +9,16 @@ import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 /**
  * Dynamic privilege guard — replaces v3's authorize() middleware.
- * Queries core_minimum_privileges by route path + HTTP method,
+ * Caches core_minimum_privileges at startup (PC-02 performance fix),
  * then checks user's role on that module via core_privileges.
  */
 @Injectable()
-export class PrivilegeGuard implements CanActivate {
+export class PrivilegeGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(PrivilegeGuard.name);
+
+  /** Startup cache: route::method → minPriv row (PC-02 fix) */
+  private minPrivCache = new Map<string, CoreMinimumPrivileges>();
+  private cacheLoaded = false;
 
   constructor(
     @InjectRepository(CoreMinimumPrivileges)
@@ -22,6 +26,20 @@ export class PrivilegeGuard implements CanActivate {
     @InjectRepository(CorePrivileges)
     private readonly privilegesRepo: Repository<CorePrivileges>,
   ) {}
+
+  async onModuleInit() {
+    await this.loadMinPrivCache();
+  }
+
+  private async loadMinPrivCache(): Promise<void> {
+    const all = await this.minPrivRepo.find({ relations: { role: true } });
+    this.minPrivCache.clear();
+    for (const mp of all) {
+      this.minPrivCache.set(`${mp.request}::${mp.method}`, mp);
+    }
+    this.cacheLoaded = true;
+    this.logger.log(`Loaded ${all.length} minimum privilege rules into cache`);
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -35,11 +53,9 @@ export class PrivilegeGuard implements CanActivate {
     const method = request.method;
 
     try {
-      // Query 1: Find minimum role required for this route + method
-      const minPriv = await this.minPrivRepo.findOne({
-        where: { request: routePath, method },
-        relations: ['role'],
-      });
+      // Lookup from cache instead of DB query (PC-02 performance fix)
+      const cacheKey = `${routePath}::${method}`;
+      const minPriv = this.minPrivCache.get(cacheKey) ?? null;
 
       // If route is not registered in minimum_privileges, allow through (v3 behavior)
       if (!minPriv) {
@@ -51,10 +67,10 @@ export class PrivilegeGuard implements CanActivate {
         return true;
       }
 
-      // Query 2: Get user's current role on this module
+      // Query user's current role on this module (per-user, cannot cache globally)
       const userPrivilege = await this.privilegesRepo.findOne({
         where: { userId: user.id, moduleId: minPriv.moduleId },
-        relations: ['role'],
+        relations: { role: true },
       });
 
       if (!userPrivilege?.role?.name) {

@@ -1,12 +1,12 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { CoreApplicationUsers } from '../../database/entities/core-application-users.entity';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { ErrorMessages } from '../../shared/constants';
+
+/** Maximum absolute lifetime for keepLogin tokens: 30 days (SC-01 security fix) */
+const MAX_KEEP_LOGIN_SECONDS = 30 * 24 * 60 * 60;
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -15,8 +15,6 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
-    @InjectRepository(CoreApplicationUsers)
-    private readonly usersRepo: Repository<CoreApplicationUsers>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,7 +41,7 @@ export class JwtAuthGuard implements CanActivate {
       request.user = payload;
       return true;
     } catch (error: any) {
-      // If expired, check keepLogin
+      // If expired, check keepLogin from the token payload (no DB query needed — PC-01 fix)
       if (error?.name === 'TokenExpiredError') {
         return this.handleExpiredToken(request, token);
       }
@@ -51,7 +49,7 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
-  private async handleExpiredToken(request: any, token: string): Promise<boolean> {
+  private handleExpiredToken(request: any, token: string): boolean {
     // Verify signature (ignore expiration) to get the payload safely
     let payload: JwtPayload;
     try {
@@ -66,18 +64,21 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
     }
 
-    // Check keepLogin flag via repository
-    const user = await this.usersRepo.findOne({
-      where: { id: payload.id },
-      select: ['id', 'keepLogin'],
-    });
-
-    if (user?.keepLogin) {
-      request.user = payload;
-      return true;
+    // keepLogin is embedded in the JWT payload at token issuance time (PC-01 fix)
+    if (!payload.keepLogin) {
+      throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
     }
 
-    throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
+    // Enforce maximum absolute lifetime of 30 days (SC-01 security fix)
+    if (payload.iat) {
+      const tokenAgeSeconds = Math.floor(Date.now() / 1000) - payload.iat;
+      if (tokenAgeSeconds > MAX_KEEP_LOGIN_SECONDS) {
+        throw new UnauthorizedException(ErrorMessages.JWT_IS_NOT_VALID);
+      }
+    }
+
+    request.user = payload;
+    return true;
   }
 
   private extractTokenFromHeader(request: any): string | null {

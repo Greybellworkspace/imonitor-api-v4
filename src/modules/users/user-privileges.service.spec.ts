@@ -44,9 +44,23 @@ function makePrivilege(moduleId: number, roleName: string): CorePrivileges {
 }
 
 /** Root modules used across several tests. */
-const ROOT_MODULE = makeModule({ id: '1', name: 'Dashboard', pId: null, isMenuItem: true, priority: 1, nestedLevel: 0 });
+const ROOT_MODULE = makeModule({
+  id: '1',
+  name: 'Dashboard',
+  pId: null,
+  isMenuItem: true,
+  priority: 1,
+  nestedLevel: 0,
+});
 const CHILD_MODULE = makeModule({ id: '2', name: 'Reports', pId: 1, isMenuItem: true, priority: 2, nestedLevel: 1 });
-const HIDDEN_MODULE = makeModule({ id: '3', name: 'Hidden', pId: null, isMenuItem: false, priority: 3, nestedLevel: 0 });
+const HIDDEN_MODULE = makeModule({
+  id: '3',
+  name: 'Hidden',
+  pId: null,
+  isMenuItem: false,
+  priority: 3,
+  nestedLevel: 0,
+});
 
 // ─── Test Suite ───────────────────────────────────────────────────────────────
 
@@ -194,7 +208,7 @@ describe('UserPrivilegesService', () => {
       await service.getUserPrivileges(USER_ID);
 
       expect(modulesRepo.find).toHaveBeenCalledWith({ order: { priority: 'ASC' } });
-      expect(privilegesRepo.find).toHaveBeenCalledWith({ where: { userId: USER_ID }, relations: ['role'] });
+      expect(privilegesRepo.find).toHaveBeenCalledWith({ where: { userId: USER_ID }, relations: { role: true } });
     });
   });
 
@@ -257,9 +271,7 @@ describe('UserPrivilegesService', () => {
       rolesRepo.find.mockResolvedValue(allRoles);
 
       const body: UserPrivilegesDto[] = [
-        buildPrivilegesDto(1, AvailableRoles.USER, [
-          buildPrivilegesDto(2, AvailableRoles.ADMIN),
-        ]),
+        buildPrivilegesDto(1, AvailableRoles.USER, [buildPrivilegesDto(2, AvailableRoles.ADMIN)]),
       ];
 
       await service.updateUserPrivileges(USER_ID, body);
@@ -308,7 +320,14 @@ describe('UserPrivilegesService', () => {
     });
 
     it('should exclude N/A-role modules that are not marked isDefault', async () => {
-      const nonDefaultModule = makeModule({ id: '4', name: 'NonDefault', pId: null, isMenuItem: true, isDefault: false, priority: 4 });
+      const nonDefaultModule = makeModule({
+        id: '4',
+        name: 'NonDefault',
+        pId: null,
+        isMenuItem: true,
+        isDefault: false,
+        priority: 4,
+      });
       modulesRepo.find.mockResolvedValue([nonDefaultModule]);
       privilegesRepo.find.mockResolvedValue([]); // no privilege → DEFAULT role
 
@@ -318,7 +337,14 @@ describe('UserPrivilegesService', () => {
     });
 
     it('should include N/A-role modules that ARE marked isDefault', async () => {
-      const defaultModule = makeModule({ id: '5', name: 'DefaultVisible', pId: null, isMenuItem: true, isDefault: true, priority: 5 });
+      const defaultModule = makeModule({
+        id: '5',
+        name: 'DefaultVisible',
+        pId: null,
+        isMenuItem: true,
+        isDefault: true,
+        priority: 5,
+      });
       modulesRepo.find.mockResolvedValue([defaultModule]);
       privilegesRepo.find.mockResolvedValue([]); // no privilege → DEFAULT role
 
@@ -329,7 +355,15 @@ describe('UserPrivilegesService', () => {
     });
 
     it('should use lightColor for light theme', async () => {
-      const colorModule = makeModule({ id: '6', name: 'Colored', pId: null, isMenuItem: true, priority: 6, lightColor: '#ffffff', darkColor: '#000000' });
+      const colorModule = makeModule({
+        id: '6',
+        name: 'Colored',
+        pId: null,
+        isMenuItem: true,
+        priority: 6,
+        lightColor: '#ffffff',
+        darkColor: '#000000',
+      });
       modulesRepo.find.mockResolvedValue([colorModule]);
       privilegesRepo.find.mockResolvedValue([makePrivilege(6, AvailableRoles.USER)]);
 
@@ -339,7 +373,15 @@ describe('UserPrivilegesService', () => {
     });
 
     it('should use darkColor for dark theme', async () => {
-      const colorModule = makeModule({ id: '7', name: 'DarkColored', pId: null, isMenuItem: true, priority: 7, lightColor: '#ffffff', darkColor: '#000000' });
+      const colorModule = makeModule({
+        id: '7',
+        name: 'DarkColored',
+        pId: null,
+        isMenuItem: true,
+        priority: 7,
+        lightColor: '#ffffff',
+        darkColor: '#000000',
+      });
       modulesRepo.find.mockResolvedValue([colorModule]);
       privilegesRepo.find.mockResolvedValue([makePrivilege(7, AvailableRoles.USER)]);
 
@@ -422,10 +464,7 @@ describe('UserPrivilegesService', () => {
     const DEFAULT_ROLE: CoreApplicationRoles = { id: 'role-default', name: AvailableRoles.DEFAULT, privileges: [] };
 
     it('should create one privilege per module using the default role', async () => {
-      const modules = [
-        makeModule({ id: '1', name: 'Dashboard' }),
-        makeModule({ id: '2', name: 'Reports' }),
-      ];
+      const modules = [makeModule({ id: '1', name: 'Dashboard' }), makeModule({ id: '2', name: 'Reports' })];
 
       privilegesRepo.manager.findOne.mockResolvedValue(DEFAULT_ROLE);
       privilegesRepo.manager.find.mockResolvedValue(modules);

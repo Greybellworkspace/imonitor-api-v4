@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger, OnModuleInit } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,10 +13,14 @@ import { CoreModules } from '../../database/entities/core-modules.entity';
 /**
  * Static role guard — replaces v3's strictAuthorize(roles, module).
  * Used with @Roles(AvailableRoles.ADMIN) + @ModuleName(AvailableModules.SETTINGS)
+ * Caches the modules table at startup (PC-03 performance fix).
  */
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RolesGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(RolesGuard.name);
+
+  /** Startup cache: module name → module entity (PC-03 fix) */
+  private modulesByName = new Map<string, CoreModules>();
 
   constructor(
     private readonly reflector: Reflector,
@@ -25,6 +29,14 @@ export class RolesGuard implements CanActivate {
     @InjectRepository(CoreModules)
     private readonly modulesRepo: Repository<CoreModules>,
   ) {}
+
+  async onModuleInit() {
+    const all = await this.modulesRepo.find();
+    for (const m of all) {
+      this.modulesByName.set(m.name, m);
+    }
+    this.logger.log(`Loaded ${all.length} modules into cache`);
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<AvailableRoles[]>(ROLES_KEY, [
@@ -55,8 +67,8 @@ export class RolesGuard implements CanActivate {
     }
 
     try {
-      // Find the module by name
-      const mod = await this.modulesRepo.findOne({ where: { name: moduleName } });
+      // Lookup module from cache instead of DB (PC-03 performance fix)
+      const mod = this.modulesByName.get(moduleName);
       if (!mod) {
         throw new ForbiddenException(ErrorMessages.UNAUTHORIZED);
       }
@@ -64,7 +76,7 @@ export class RolesGuard implements CanActivate {
       // Get user's privilege on this module
       const privilege = await this.privilegesRepo.findOne({
         where: { userId: user.id, moduleId: parseInt(mod.id, 10) },
-        relations: ['role'],
+        relations: { role: true },
       });
 
       if (!privilege?.role?.name) {

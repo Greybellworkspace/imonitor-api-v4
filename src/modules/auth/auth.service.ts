@@ -98,8 +98,8 @@ export class AuthService {
     // Update lastLogin
     await this.usersRepo.update(user.id, { lastLogin: this.dateHelper.currentDate() });
 
-    // Generate tokens
-    return this.generateTokenAndRefreshToken(user.id, user.email, user.userName, user.theme ?? 'light');
+    // Generate tokens (embed keepLogin in JWT for guard use — PC-01 fix)
+    return this.generateTokenAndRefreshToken(user.id, user.email, user.userName, user.theme ?? 'light', false);
   }
 
   // ─── Logout ──────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ export class AuthService {
     // Fetch user
     const user = await this.usersRepo.findOne({
       where: { email: decoded.email },
-      select: ['id', 'email', 'userName', 'allowMultipleSessions', 'theme', 'keepLogin'],
+      select: { id: true, email: true, userName: true, allowMultipleSessions: true, theme: true, keepLogin: true },
     });
 
     if (!user || !user.email || !user.userName) {
@@ -197,8 +197,8 @@ export class AuthService {
     // Mark old refresh token as used
     await this.refreshTokenRepo.update(storedRefreshToken.id, { used: true });
 
-    // Generate new pair
-    return this.generateTokenAndRefreshToken(user.id, user.email, user.userName, user.theme ?? 'light');
+    // Generate new pair (embed keepLogin in JWT for guard use — PC-01 fix)
+    return this.generateTokenAndRefreshToken(user.id, user.email, user.userName, user.theme ?? 'light', user.keepLogin);
   }
 
   // ─── Can Access Module ───────────────────────────────────────────────
@@ -222,7 +222,7 @@ export class AuthService {
     // Get user's role on this module
     const privilege = await this.privilegesRepo.findOne({
       where: { userId, moduleId: parseInt(moduleExists.id, 10) },
-      relations: ['role'],
+      relations: { role: true },
     });
 
     const userRole = privilege?.role?.name;
@@ -238,18 +238,28 @@ export class AuthService {
     email: string,
     userName: string,
     theme: string,
+    keepLogin?: boolean,
   ): Promise<AuthenticationResult> {
     const jwtId = uuidv4();
 
-    // Get expiry from system config (in minutes → convert to seconds for jwt.sign)
-    const expiryMinutesStr = await this.systemConfigService.getConfigValue(SystemKeys.tokenExpiryInMinutes);
-    const expiresInSeconds = expiryMinutesStr ? parseInt(expiryMinutesStr, 10) * 60 : 1800; // 30 min default
+    // Batch fetch both config values in a single query (PH-03 performance fix)
+    const configValues = await this.systemConfigService.getConfigValues([
+      SystemKeys.tokenExpiryInMinutes,
+      SystemKeys.rtokenExpiryInMinutes,
+    ]);
+    const expiresInSeconds = configValues[SystemKeys.tokenExpiryInMinutes]
+      ? parseInt(configValues[SystemKeys.tokenExpiryInMinutes], 10) * 60
+      : 1800; // 30 min default
+    const rtExpiryMins = configValues[SystemKeys.rtokenExpiryInMinutes]
+      ? parseInt(configValues[SystemKeys.rtokenExpiryInMinutes], 10)
+      : 10080; // 7 days default
 
     const payload: JwtPayload = {
       id: userId,
       email,
       credential: userName,
       theme,
+      keepLogin: keepLogin ?? false,
     };
 
     const token = this.jwtService.sign(payload, {
@@ -257,10 +267,6 @@ export class AuthService {
       subject: userId,
       jwtid: jwtId,
     });
-
-    // Create refresh token
-    const refreshTokenExpiryMinutes = await this.systemConfigService.getConfigValue(SystemKeys.rtokenExpiryInMinutes);
-    const rtExpiryMins = refreshTokenExpiryMinutes ? parseInt(refreshTokenExpiryMinutes, 10) : 10080; // 7 days default
 
     const refreshTokenId = uuidv4();
     const now = this.dateHelper.currentDate();

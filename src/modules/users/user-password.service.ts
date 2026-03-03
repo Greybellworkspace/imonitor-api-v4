@@ -35,7 +35,7 @@ export class UserPasswordService {
     // Fetch current password hash
     const user = await this.usersRepo.findOne({
       where: { id: currentUserId },
-      select: ['id', 'passwordHash'],
+      select: { id: true, passwordHash: true },
     });
 
     if (!user || !user.passwordHash) {
@@ -65,7 +65,7 @@ export class UserPasswordService {
     // Fetch target user info for email
     const user = await this.usersRepo.findOne({
       where: { id: targetUserId },
-      select: ['id', 'firstName', 'lastName', 'email'],
+      select: { id: true, firstName: true, lastName: true, email: true },
     });
 
     if (!user) {
@@ -84,13 +84,13 @@ export class UserPasswordService {
       { invalidated: true },
     );
 
-    // Emit event for email notification (stub — email service can listen)
+    // Emit event for email notification (SC-02 fix: no plaintext password in event)
+    // The email service should send a password-reset link instead of the raw password.
     this.eventEmitter.emit('user.password.reset', {
       userId: targetUserId,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      newPassword: randomPassword,
     });
   }
 }

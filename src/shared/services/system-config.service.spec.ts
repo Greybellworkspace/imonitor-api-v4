@@ -39,10 +39,7 @@ describe('SystemConfigService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SystemConfigService,
-        { provide: getRepositoryToken(CoreSysConfig), useValue: sysConfigRepo },
-      ],
+      providers: [SystemConfigService, { provide: getRepositoryToken(CoreSysConfig), useValue: sysConfigRepo }],
     }).compile();
 
     service = module.get<SystemConfigService>(SystemConfigService);
@@ -146,10 +143,7 @@ describe('SystemConfigService', () => {
 
   describe('getConfigValues', () => {
     it('should query the database for all keys on a full cache miss', async () => {
-      sysConfigRepo.find.mockResolvedValue([
-        makeConfigRow('key1', 'val1'),
-        makeConfigRow('key2', 'val2'),
-      ]);
+      sysConfigRepo.find.mockResolvedValue([makeConfigRow('key1', 'val1'), makeConfigRow('key2', 'val2')]);
 
       const result = await service.getConfigValues(['key1', 'key2']);
 
@@ -265,7 +259,7 @@ describe('SystemConfigService', () => {
     });
 
     it('should return an empty array for a SQL injection attempt', async () => {
-      const result = await service.getSettingsByColumn("1=1; DROP TABLE core_sys_config; --");
+      const result = await service.getSettingsByColumn('1=1; DROP TABLE core_sys_config; --');
 
       expect(result).toEqual([]);
       expect(sysConfigRepo.createQueryBuilder).not.toHaveBeenCalled();

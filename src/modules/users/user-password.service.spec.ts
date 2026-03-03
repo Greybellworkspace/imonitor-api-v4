@@ -90,12 +90,9 @@ describe('UserPasswordService', () => {
 
       expect(usersRepo.findOne).toHaveBeenCalledWith({
         where: { id: CURRENT_USER_ID },
-        select: ['id', 'passwordHash'],
+        select: { id: true, passwordHash: true },
       });
-      expect(passwordService.isPasswordValid).toHaveBeenCalledWith(
-        validChangePasswordDto.oldPassword,
-        HASHED_PASSWORD,
-      );
+      expect(passwordService.isPasswordValid).toHaveBeenCalledWith(validChangePasswordDto.oldPassword, HASHED_PASSWORD);
       expect(passwordService.hashPassword).toHaveBeenCalledWith(validChangePasswordDto.password);
       expect(usersRepo.update).toHaveBeenCalledWith(CURRENT_USER_ID, { passwordHash: NEW_HASH });
     });
@@ -185,7 +182,7 @@ describe('UserPasswordService', () => {
 
       expect(usersRepo.findOne).toHaveBeenCalledWith({
         where: { id: TARGET_USER_ID },
-        select: ['id', 'firstName', 'lastName', 'email'],
+        select: { id: true, firstName: true, lastName: true, email: true },
       });
       expect(passwordService.hashPassword).toHaveBeenCalledWith(expect.any(String));
       expect(usersRepo.update).toHaveBeenCalledWith(TARGET_USER_ID, { passwordHash: NEW_HASH });
@@ -213,7 +210,7 @@ describe('UserPasswordService', () => {
       );
     });
 
-    it('should emit user.password.reset event with the correct payload', async () => {
+    it('should emit user.password.reset event with the correct payload (no plaintext password)', async () => {
       usersRepo.findOne.mockResolvedValue(mockTargetUser);
 
       await service.resetPassword(CURRENT_USER_ID, TARGET_USER_ID);
@@ -225,12 +222,11 @@ describe('UserPasswordService', () => {
           email: mockTargetUser.email,
           firstName: mockTargetUser.firstName,
           lastName: mockTargetUser.lastName,
-          newPassword: expect.any(String),
         }),
       );
     });
 
-    it('should generate a non-empty random password included in the reset event', async () => {
+    it('should NOT include plaintext password in the reset event (SC-02 security fix)', async () => {
       usersRepo.findOne.mockResolvedValue(mockTargetUser);
       let capturedPayload: any;
       eventEmitter.emit.mockImplementation((_event: string, payload: any) => {
@@ -239,23 +235,7 @@ describe('UserPasswordService', () => {
 
       await service.resetPassword(CURRENT_USER_ID, TARGET_USER_ID);
 
-      expect(capturedPayload.newPassword).toBeTruthy();
-      expect(typeof capturedPayload.newPassword).toBe('string');
-      expect(capturedPayload.newPassword.length).toBeGreaterThan(0);
-    });
-
-    it('should generate a unique random password on each invocation', async () => {
-      usersRepo.findOne.mockResolvedValue(mockTargetUser);
-      const passwords: string[] = [];
-      eventEmitter.emit.mockImplementation((_event: string, payload: any) => {
-        passwords.push(payload.newPassword);
-      });
-
-      // Call twice — the passwords must differ
-      await service.resetPassword(CURRENT_USER_ID, TARGET_USER_ID);
-      await service.resetPassword(CURRENT_USER_ID, TARGET_USER_ID);
-
-      expect(passwords[0]).not.toBe(passwords[1]);
+      expect(capturedPayload).not.toHaveProperty('newPassword');
     });
 
     it('should not emit the reset event when the target user does not exist', async () => {
