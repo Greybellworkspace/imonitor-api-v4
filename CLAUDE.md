@@ -27,7 +27,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 1: Scaffolding | `migration/phase-1-scaffolding-typeorm` | Done | — |
 | 2: Core Architecture | `migration/phase-2-core-architecture` | Done | — |
 | 3.1: Auth & Users | `migration/phase-3.1-auth-users` | Done | `v0.3.1-migration-phase3.1` |
-| 3.2: Core Features | `migration/phase-3.2-core-features` | Done | — |
+| 3.2: Core Features | `migration/phase-3.2-core-features` | Done | `v0.3.2-migration-phase3.2` |
 | 3.3: Reporting | `migration/phase-3.3-reporting` | Pending | — |
 | 3.4: Dashboards | `migration/phase-3.4-dashboards` | Pending | — |
 | 3.5: Monitoring | `migration/phase-3.5-monitoring` | Pending | — |
