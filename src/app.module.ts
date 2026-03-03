@@ -15,6 +15,9 @@ import { CoreDataModule } from './database/core-data.module';
 import { HealthModule } from './health/health.module';
 import { AuthEndpointsModule } from './modules/auth/auth-endpoints.module';
 import { UsersModule } from './modules/users/users.module';
+import { ModulesModule } from './modules/modules/modules.module';
+import { ParametersModule } from './modules/parameters/parameters.module';
+import { NodeDefinitionModule } from './modules/node-definition/node-definition.module';
 import { CorrelationIdMiddleware } from './logger/correlation-id.middleware';
 import { RequestFilterMiddleware } from './shared/middleware/request-filter.middleware';
 import { RateLimiterMiddleware } from './shared/middleware/rate-limiter.middleware';
@@ -45,6 +48,9 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
     HealthModule,
     AuthEndpointsModule,
     UsersModule,
+    ModulesModule,
+    ParametersModule,
+    NodeDefinitionModule,
   ],
   providers: [
     // Global guard — JWT auth on all routes (unless @Public())
