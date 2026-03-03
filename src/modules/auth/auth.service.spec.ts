@@ -264,6 +264,138 @@ describe('AuthService', () => {
         new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
       );
     });
+
+    it('should throw if refresh token is expired', async () => {
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: Math.floor(Date.now() / 1000) - 10,
+      });
+
+      usersRepo.findOne.mockResolvedValue(mockUser);
+      refreshTokenRepo.findOne.mockResolvedValue({
+        ...mockRefreshToken,
+        expiryDate: new Date(Date.now() - 86400000), // 1 day ago — expired
+      });
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
+      );
+    });
+
+    it('should throw if refresh token not found in DB (H-02 fix)', async () => {
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+      });
+
+      usersRepo.findOne.mockResolvedValue(mockUser);
+      refreshTokenRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'nonexistent' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
+      );
+    });
+
+    it('should throw if jwtId does not match refresh token jwtId', async () => {
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'different-jwt-id',
+      });
+
+      usersRepo.findOne.mockResolvedValue(mockUser);
+      refreshTokenRepo.findOne.mockResolvedValue(mockRefreshToken); // jwtId = 'jwt-id-1'
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
+      );
+    });
+
+    it('should throw TOKEN_HAS_NOT_EXPIRED_YET for non-keepLogin user with fresh token', async () => {
+      const futureExp = Math.floor(Date.now() / 1000) + 1800; // 30min from now
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: futureExp,
+      });
+
+      usersRepo.findOne.mockResolvedValue({ ...mockUser, keepLogin: false });
+      refreshTokenRepo.findOne.mockResolvedValue(mockRefreshToken);
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.TOKEN_HAS_NOT_EXPIRED_YET),
+      );
+    });
+
+    it('should allow refresh when non-keepLogin token is near expiry (within grace period)', async () => {
+      const nearExpiry = Math.floor(Date.now() / 1000) + 30; // only 30s left
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+        exp: nearExpiry,
+      });
+
+      usersRepo.findOne.mockResolvedValue({ ...mockUser, keepLogin: false });
+      refreshTokenRepo.findOne.mockResolvedValue(mockRefreshToken);
+
+      const result = await service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' });
+
+      expect(result).toHaveProperty('token');
+      expect(result).toHaveProperty('refreshToken');
+      expect(refreshTokenRepo.update).toHaveBeenCalledWith('rt-1', { used: true });
+    });
+
+    it('should throw if JWT verify fails entirely', async () => {
+      jwtServiceMock.verify.mockImplementation(() => {
+        throw new Error('bad token');
+      });
+
+      await expect(service.refreshToken({ token: 'bad-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
+      );
+    });
+
+    it('should throw if decoded JWT has no email', async () => {
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        jti: 'jwt-id-1',
+      });
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.REFRESH_TOKEN_INVALID),
+      );
+    });
+
+    it('should throw if user not found by email', async () => {
+      jwtServiceMock.verify.mockReturnValue({
+        id: 'user-1',
+        email: 'deleted@example.com',
+        credential: 'testuser',
+        theme: 'light',
+        jti: 'jwt-id-1',
+      });
+
+      usersRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.refreshToken({ token: 'some-token', refreshToken: 'rt-1' })).rejects.toThrow(
+        new BadRequestException(ErrorMessages.INVALID_CREDENTIALS),
+      );
+    });
   });
 
   describe('canAccessModule', () => {

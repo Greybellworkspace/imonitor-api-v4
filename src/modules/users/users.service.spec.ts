@@ -225,4 +225,121 @@ describe('UsersService', () => {
       expect(usersRepo.update).toHaveBeenCalledWith('user-1', { theme: UserTheme.DARK });
     });
   });
+
+  // ─── selfUpdate ─────────────────────────────────────────────────────
+
+  describe('selfUpdate', () => {
+    const editSelfDto = {
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'jane@example.com',
+      phoneNumber: '5551234',
+    };
+
+    it('should update own profile when email is unique', async () => {
+      const qb = createMockQueryBuilder(null);
+      qb.getExists.mockResolvedValue(false);
+      usersRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.selfUpdate('user-1', editSelfDto);
+
+      expect(usersRepo.update).toHaveBeenCalledWith('user-1', {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        phoneNumber: '5551234',
+        email: 'jane@example.com',
+        modifiedOn: expect.any(Date),
+      });
+    });
+
+    it('should throw if email already taken by another user', async () => {
+      const qb = createMockQueryBuilder(null);
+      qb.getExists.mockResolvedValue(true);
+      usersRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await expect(service.selfUpdate('user-1', editSelfDto)).rejects.toThrow(
+        new BadRequestException(ErrorMessages.EMAIL_ALREADY_EXISTS),
+      );
+    });
+  });
+
+  // ─── update (admin) ─────────────────────────────────────────────────
+
+  describe('update', () => {
+    const updateDto = {
+      id: 'user-2',
+      firstName: 'Updated',
+      lastName: 'User',
+      email: 'updated@example.com',
+      phoneNumber: '5559999',
+      allowMultipleSessions: true,
+      keepLogin: false,
+    };
+
+    it('should update another user when email is unique', async () => {
+      const qb = createMockQueryBuilder(null);
+      qb.getExists.mockResolvedValue(false);
+      usersRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.update('user-2', 'admin-1', updateDto);
+
+      expect(usersRepo.update).toHaveBeenCalledWith('user-2', {
+        firstName: 'Updated',
+        lastName: 'User',
+        phoneNumber: '5559999',
+        email: 'updated@example.com',
+        allowMultipleSessions: true,
+        keepLogin: false,
+        modifiedBy: 'admin-1',
+        modifiedOn: expect.any(Date),
+      });
+    });
+
+    it('should throw if email already taken by another user', async () => {
+      const qb = createMockQueryBuilder(null);
+      qb.getExists.mockResolvedValue(true);
+      usersRepo.createQueryBuilder.mockReturnValue(qb);
+
+      await expect(service.update('user-2', 'admin-1', updateDto)).rejects.toThrow(
+        new BadRequestException(ErrorMessages.EMAIL_ALREADY_EXISTS),
+      );
+    });
+  });
+
+  // ─── getEmails ──────────────────────────────────────────────────────
+
+  describe('getEmails', () => {
+    it('should return list of emails for active users', async () => {
+      usersRepo.find.mockResolvedValue([
+        { email: 'a@test.com' },
+        { email: 'b@test.com' },
+        { email: null },
+        { email: '' },
+      ]);
+
+      const result = await service.getEmails();
+
+      expect(result).toEqual(['a@test.com', 'b@test.com']);
+    });
+
+    it('should return empty array when no users', async () => {
+      usersRepo.find.mockResolvedValue([]);
+
+      const result = await service.getEmails();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should query with correct params', async () => {
+      usersRepo.find.mockResolvedValue([]);
+
+      await service.getEmails();
+
+      expect(usersRepo.find).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+        select: { email: true },
+        order: { firstName: 'ASC' },
+      });
+    });
+  });
 });
