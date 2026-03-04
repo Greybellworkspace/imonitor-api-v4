@@ -44,7 +44,19 @@ export const ErrorMessages = {
   ACCESS_DENIED: "You don't have access to this widget Builder",
   CHART_ERROR_DEFAULT: 'Operation failed, chart used in system and cannot be modified',
 
-  // Generic errors
+  // Chart generation errors (preserving v3 chartsErrorMessages)
+  CHART_FIELD_IS_MISSING: 'Make sure the necessary fields are selected',
+  CHART_CANNOT_FIND_FIELD: 'Field could not be found',
+  CHART_TREND_WITHOUT_COMPARE: 'Cannot use compare column without stat date in trend',
+  CHART_NO_NUMBER_FIELD: 'Please choose a numeric field',
+  CHART_EXPLODE_FIELD_ERROR: 'Make sure to use the correct field type for the explode',
+  CHART_DUPLICATE_FIELD: 'Duplicate fields detected, please make sure to choose unique fields',
+  CHART_TREND_ERROR: 'Error during trend chart construction',
+  CHART_HOT_KEY_ERROR: 'Error during text transformation process',
+  CHART_GENERATE_ERROR: 'error generating the charts',
+
+  // Generic errors (preserving v3 typo for backward compat)
+  ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',
   INTERNAL_ERROR: 'Something went Wrong, please contact the support',
   VALIDATION_ERROR: 'One or More fields are incorrect',

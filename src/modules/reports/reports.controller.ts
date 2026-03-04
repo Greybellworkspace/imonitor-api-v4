@@ -10,6 +10,7 @@ import {
   ChangeReportOwnerDto,
   ShareReportDto,
   GenerateReportDto,
+  GenerateChartDto,
   GenerateChartByTypeDto,
   ExportReportParamsDto,
   ExportTabParamsDto,
@@ -134,50 +135,50 @@ export class ReportsController {
   @Post('generate/pie')
   @ApiOperation({ summary: 'Generate pie chart' })
   @ApiResponse({ status: 200, description: 'Pie chart data returned' })
-  pie(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generatePie(dto, userId);
+  pie(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generatePie(dto.tabular, dto.chart);
   }
 
   @Post('generate/doughnut')
   @ApiOperation({ summary: 'Generate doughnut chart' })
   @ApiResponse({ status: 200, description: 'Doughnut chart data returned' })
-  doughnut(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateDoughnut(dto, userId);
+  doughnut(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateDoughnut(dto.tabular, dto.chart);
   }
 
   @Post('generate/trend')
   @ApiOperation({ summary: 'Generate trend chart' })
   @ApiResponse({ status: 200, description: 'Trend chart data returned' })
-  trend(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateTrend(dto, userId);
+  trend(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateTrend(dto.tabular, dto.chart);
   }
 
   @Post('generate/bar/vertical')
   @ApiOperation({ summary: 'Generate vertical bar chart' })
   @ApiResponse({ status: 200, description: 'Vertical bar chart data returned' })
-  verticalChart(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateVerticalBar(dto, userId);
+  verticalChart(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateVerticalBar(dto.tabular, dto.chart);
   }
 
   @Post('generate/bar/horizontal')
   @ApiOperation({ summary: 'Generate horizontal bar chart' })
   @ApiResponse({ status: 200, description: 'Horizontal bar chart data returned' })
-  horizontalChart(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateHorizontalBar(dto, userId);
+  horizontalChart(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateHorizontalBar(dto.tabular, dto.chart);
   }
 
   @Post('generate/progress')
   @ApiOperation({ summary: 'Generate progress chart' })
   @ApiResponse({ status: 200, description: 'Progress chart data returned' })
-  progress(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateProgress(dto, userId);
+  progress(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateProgress(dto.tabular, dto.chart);
   }
 
   @Post('generate/progress/exploded')
   @ApiOperation({ summary: 'Generate exploded progress chart' })
   @ApiResponse({ status: 200, description: 'Exploded progress chart data returned' })
-  explodedProgress(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
-    return this.reportsService.generateExplodedProgress(dto, userId);
+  explodedProgress(@Body() dto: GenerateChartDto) {
+    return this.reportsService.generateExplodedProgress(dto.tabular, dto.chart);
   }
 
   @Post('dataanalysis/chart')

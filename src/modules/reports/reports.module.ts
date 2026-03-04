@@ -7,6 +7,7 @@ import { CoreReportUsedTable } from '../../database/entities/core-report-used-ta
 import { CoreSharedReport } from '../../database/entities/core-shared-report.entity';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
+import { QueryBuilderService } from './services/query-builder.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { ReportsService } from './reports.service';
     ]),
   ],
   controllers: [ReportsController],
-  providers: [ReportsService],
-  exports: [ReportsService],
+  providers: [ReportsService, QueryBuilderService],
+  exports: [ReportsService, QueryBuilderService],
 })
 export class ReportsModule {}

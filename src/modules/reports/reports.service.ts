@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { v4 } from 'uuid';
@@ -15,8 +16,17 @@ import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-d
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
-import { FETCH_CHART_DB_FUNCTION } from './constants';
-import { ChartStatus } from './enums';
+import { FETCH_CHART_DB_FUNCTION, REPORT_TABLE_CHART_DEFAULT_VALUE, REPORT_TABLE_ID } from './constants';
+import { ChartStatus, ChartTypes } from './enums';
+import { QueryBuilderService } from './services/query-builder.service';
+import { generatePie as generatePieChart } from './charts/pie.chart';
+import { generateDoughnut as generateDoughnutChart } from './charts/doughnut.chart';
+import { generateTrend as generateTrendChart } from './charts/trend.chart';
+import { generateVerticalBar as generateVerticalBarChart } from './charts/vertical-bar.chart';
+import { generateHorizontalBar as generateHorizontalBarChart } from './charts/horizontal-bar.chart';
+import { generateProgress as generateProgressChart } from './charts/progress.chart';
+import { generateExplodedProgress as generateExplodedProgressChart } from './charts/exploded-progress.chart';
+import { deepCopy } from './charts/chart-helpers';
 import {
   SaveReportDto,
   EditReportDto,
@@ -57,6 +67,8 @@ function safeJsonParse<T>(value: string | null | undefined): T | null {
 export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
 
+  private readonly coreDbName: string;
+
   constructor(
     @InjectRepository(CoreReport)
     private readonly reportRepo: Repository<CoreReport>,
@@ -79,7 +91,11 @@ export class ReportsService {
     private readonly dataSource: DataSource,
     private readonly legacyDataDb: LegacyDataDbService,
     private readonly dateHelper: DateHelperService,
-  ) {}
+    private readonly queryBuilder: QueryBuilderService,
+    private readonly configService: ConfigService,
+  ) {
+    this.coreDbName = this.configService.get<string>('coreDbName', '`iMonitorV3_1`');
+  }
 
   // --- CRUD ---
 
@@ -941,54 +957,241 @@ export class ReportsService {
 
   // --- Chart Generation ---
 
+  /**
+   * Execute the report's dynamic SQL and return tabular data (headers + rows).
+   * Mirrors v3 executeQuery().
+   */
   async executeQuery(dto: GenerateReportDto): Promise<ExecuteQueryResultDto> {
-    // TODO: Phase 3 — Task 3.2
-    throw new Error('Not implemented');
+    const generateResult = await this.queryBuilder.generateQuery(dto);
+
+    if (generateResult?.query) {
+      try {
+        const queryResult = await this.legacyDataDb.query<Record<string, unknown>>(generateResult.query);
+        return { header: generateResult.header, body: queryResult };
+      } catch (error) {
+        this.logger.error('executeQuery failed', error);
+        throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+      }
+    }
+
+    return { header: [], body: [] };
   }
 
+  /**
+   * Generate the SQL string for a report without executing it.
+   * Mirrors v3 generatedQuery().
+   */
   async generatedQuery(dto: GenerateReportDto): Promise<string> {
-    // TODO: Phase 3 — Task 3.3
-    throw new Error('Not implemented');
+    const generateResult = await this.queryBuilder.generateQuery(dto);
+    return generateResult?.query ?? '';
   }
 
-  async generatePie(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  /**
+   * Build the chart generate result by running the query builder and combining
+   * with the original DTO's tables/operation arrays.
+   * Mirrors v3 returnGenerateReportResult().
+   */
+  private async buildChartGenerateResult(dto: GenerateReportDto) {
+    const qbResult = await this.queryBuilder.generateQuery(dto);
+    return {
+      query: qbResult.query,
+      fieldsArray: qbResult.fieldsArray,
+      tables: dto.tables,
+      operation: dto.operation,
+    };
   }
 
-  async generateDoughnut(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generatePie(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    return generatePieChart(generateResult, chart, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName);
   }
 
-  async generateTrend(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generateDoughnut(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    return generateDoughnutChart(
+      generateResult,
+      chart,
+      dateObject,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
   }
 
-  async generateVerticalBar(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generateTrend(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    return generateTrendChart(
+      generateResult,
+      chart,
+      dateObject,
+      dto.compare,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
   }
 
-  async generateHorizontalBar(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generateVerticalBar(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    return generateVerticalBarChart(
+      generateResult,
+      chart,
+      dateObject,
+      dto.compare,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
   }
 
-  async generateProgress(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generateHorizontalBar(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    return generateHorizontalBarChart(
+      generateResult,
+      chart,
+      dateObject,
+      dto.compare,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
   }
 
-  async generateExplodedProgress(dto: GenerateReportDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.5
-    throw new Error('Not implemented');
+  async generateProgress(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    const result = await generateProgressChart(
+      generateResult,
+      chart,
+      dateObject,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
+    return result.chart;
   }
 
+  async generateExplodedProgress(dto: GenerateReportDto, chart: IChartData): Promise<IChartData> {
+    const generateResult = await this.buildChartGenerateResult(dto);
+    const dateObject = { fromDate: dto.fromDate, toDate: dto.toDate };
+    const result = await generateExplodedProgressChart(
+      generateResult,
+      chart,
+      dateObject,
+      this.legacyDataDb,
+      this.dateHelper,
+      this.coreDbName,
+    );
+    return result.chart;
+  }
+
+  /**
+   * Generate a chart by its type — loads the report config and chart data from DB,
+   * then dispatches to the appropriate chart generator.
+   * Mirrors v3 generateChartByType().
+   */
   async generateChartByType(dto: GenerateChartByTypeDto, userId: string): Promise<IChartData> {
-    // TODO: Phase 3 — Task 3.6
-    throw new Error('Not implemented');
+    // Load report config from DB
+    const dbReport = await this.reportRepo.findOne({
+      where: { id: dto.reportId },
+      select: {
+        id: true,
+        fromDate: true,
+        toDate: true,
+        timeFilter: true,
+        limit: true,
+        orderBy: true,
+        globalFilter: true,
+        tables: true,
+        compare: true,
+        operation: true,
+        control: true,
+        options: true,
+        isQbe: true,
+      },
+    });
+
+    if (!dbReport) {
+      throw new BadRequestException(ErrorMessages.REPORT_DOES_NOT_EXIST);
+    }
+
+    // Build the generate object from stored report config
+    const generateObject: GenerateReportDto = {
+      fromDate: dto.fromDate,
+      toDate: dto.toDate,
+      timeFilter: dto.interval,
+      limit: dbReport.limit ?? undefined,
+      tables: safeJsonParse<GenerateReportDto['tables']>(dbReport.tables as unknown as string) ?? [],
+      control: safeJsonParse<GenerateReportDto['control']>(dbReport.control as unknown as string) ?? [],
+      compare: safeJsonParse<GenerateReportDto['compare']>(dbReport.compare as unknown as string) ?? [],
+      operation: safeJsonParse<GenerateReportDto['operation']>(dbReport.operation as unknown as string) ?? [],
+      globalFilter: safeJsonParse<GenerateReportDto['globalFilter']>(dbReport.globalFilter as unknown as string) ?? {
+        condition: 'AND',
+        rules: [],
+      },
+      orderBy: safeJsonParse<GenerateReportDto['orderBy']>(dbReport.orderBy as unknown as string) ?? [],
+    };
+
+    const reportOptions = safeJsonParse<Record<string, unknown>>(dbReport.options as unknown as string);
+
+    // Table chart (chartId === '0') — return tabular data
+    if (dto.chartId === REPORT_TABLE_ID) {
+      const table = await this.executeQuery(generateObject);
+      const tableChart = deepCopy(REPORT_TABLE_CHART_DEFAULT_VALUE) as IChartData;
+      (tableChart as Record<string, unknown>)['lib'] = {
+        body: table.body,
+        header: table.header,
+        options: reportOptions,
+      };
+      return tableChart;
+    }
+
+    // Fetch chart config from DB using JSON_INSERT to enrich with metadata
+    // SDQ: requires manual verification
+    const chartRows = await this.legacyDataDb.query<{ data: string }>(
+      `SELECT ${FETCH_CHART_DB_FUNCTION} as data FROM ${this.coreDbName}.core_report_charts WHERE reportId = ? AND id = ?`,
+      [dto.reportId, dto.chartId],
+    );
+
+    if (!chartRows?.length) {
+      throw new BadRequestException(ErrorMessages.CHART_ERROR_DEFAULT);
+    }
+
+    let chart: IChartData = JSON.parse(chartRows[0].data);
+
+    // Dispatch to the correct chart generator by type
+    switch (chart.type) {
+      case ChartTypes.PIE:
+        chart = await this.generatePie(generateObject, chart);
+        break;
+      case ChartTypes.DOUGHNUT:
+        chart = await this.generateDoughnut(generateObject, chart);
+        break;
+      case ChartTypes.TREND:
+        chart = await this.generateTrend(generateObject, chart);
+        break;
+      case ChartTypes.VERTICAL_BAR:
+        chart = await this.generateVerticalBar(generateObject, chart);
+        break;
+      case ChartTypes.HORIZONTAL_BAR:
+        chart = await this.generateHorizontalBar(generateObject, chart);
+        break;
+      case ChartTypes.PROGRESS:
+        chart = await this.generateProgress(generateObject, chart);
+        break;
+      case ChartTypes.EXPLODED_PROGRESS:
+        chart = await this.generateExplodedProgress(generateObject, chart);
+        break;
+      default:
+        this.logger.warn(`Unknown chart type: ${chart.type}`);
+    }
+
+    return chart;
   }
 
   // --- Export ---
