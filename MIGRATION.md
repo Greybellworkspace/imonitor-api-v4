@@ -1273,7 +1273,40 @@ This gives decoupling benefits without CQRS overhead.
 
 Unit tests + E2E tests + Socket.IO tests + load testing + MANUAL_TESTING.md
 
-**Final tag:** `v1.0.0-nestjs-migration`
+**Tag:** `v1.0.0-nestjs-migration`
+
+### Phase 6: Parallel API Verification
+**Branch:** `migration/phase-6-parallel-verification`
+
+Run v3 and v4 APIs side by side, replay the same requests to both, and compare responses to verify endpoint parity.
+
+| Sub-task | Description |
+|----------|-------------|
+| 6.1 | Stand up v3 and v4 in parallel (same DB, separate ports) |
+| 6.2 | Build request replay/proxy harness that sends each request to both APIs |
+| 6.3 | Compare response status codes, body shapes, and data for every endpoint |
+| 6.4 | Log and triage all mismatches — fix v4 until responses match |
+| 6.5 | Validate destructive operations (POST/PUT/DELETE) produce identical DB state |
+| 6.6 | Verify Socket.IO event parity across all 6 namespaces |
+
+**Tag:** `v1.1.0-parallel-verified`
+
+### Phase 7: QueryBuilder Refactor
+**Branch:** `migration/phase-7-querybuilder-refactor`
+
+Refactor the QueryBuilder service (SQL injection fixes, god-method decomposition, proper parameterization) while continuously comparing its query results against the v3 API to prevent regressions.
+
+| Sub-task | Description |
+|----------|-------------|
+| 7.1 | Set up automated comparison harness: run the same report/chart generation requests through v3 and v4, diff the query results row-by-row |
+| 7.2 | Replace string concatenation with parameterized queries (fix SQL injection — findings #1-4, #10) |
+| 7.3 | Break down the god method into focused, single-responsibility functions (finding #24) |
+| 7.4 | Remove `escapeSQLLiteral` in favour of proper parameterization (finding #10) |
+| 7.5 | Add comprehensive unit tests for each decomposed function (findings #8-9) |
+| 7.6 | Run full report regression suite — verify every report type produces identical results to v3 |
+| 7.7 | Performance benchmark: compare v4 refactored query execution times against v3 baselines |
+
+**Tag:** `v1.2.0-querybuilder-refactored`
 
 ---
 
@@ -1365,6 +1398,8 @@ Before production deployment, validate against live DB:
 | `v0.3.0-migration-phase3` | All modules migrated |
 | `v0.4.0-migration-phase4` | Socket.IO migrated |
 | `v1.0.0-nestjs-migration` | Testing complete, ready for deploy |
+| `v1.1.0-parallel-verified` | All endpoints verified against v3 |
+| `v1.2.0-querybuilder-refactored` | QueryBuilder refactored with v3 result parity |
 
 ---
 

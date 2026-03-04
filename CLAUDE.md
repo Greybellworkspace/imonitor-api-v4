@@ -38,6 +38,8 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Pending | — |
 | 4: Socket.IO | `migration/phase-4-socketio` | Pending | — |
 | 5: Testing & Validation | `migration/phase-5-testing` | Pending | `v1.0.0-nestjs-migration` |
+| 6: Parallel API Verification | `migration/phase-6-parallel-verification` | Pending | `v1.1.0-parallel-verified` |
+| 7: QueryBuilder Refactor | `migration/phase-7-querybuilder-refactor` | Pending | `v1.2.0-querybuilder-refactored` |
 
 ## Database Rules
 
