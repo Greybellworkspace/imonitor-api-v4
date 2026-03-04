@@ -44,6 +44,18 @@ export const ErrorMessages = {
   ACCESS_DENIED: "You don't have access to this widget Builder",
   CHART_ERROR_DEFAULT: 'Operation failed, chart used in system and cannot be modified',
 
+  // Widget builder errors (preserving v3 widgetBuilderErrorMessages)
+  WIDGET_BUILDER_DOES_NOT_EXIST: 'Widget Builder does not exist',
+  SHARED_WIDGET_BUILDER_DOES_NOT_EXIST: 'Shared Widget Builder does not exist',
+  WIDGET_DOES_NOT_HAVE_MODULES: 'Widget Builder does not have moduleIds',
+  ERROR_WHILE_SAVING_WIDGETBUILDER: 'Error occured while saving the Widget Builder',
+  USER_ALREADY_OWNS_WIDGET_BUILDER: 'You already own this Widget Builder!',
+  WIDGET_BUILDER_IS_BEING_USED_IN_THE_FOLLOWING_DASHBOARDS:
+    'This widget builder is being used in the following dashboards: ',
+  WIDGET_BUILDER_DELETED: 'Widget Builder successfully deleted',
+  WIDGET_OWNER_UPDATED: 'Widget Builder owner successfully updated',
+  WIDGET_BUILDER_NAME_UPDATED: 'Widget Builder name successfully updated',
+
   // Chart generation errors (preserving v3 chartsErrorMessages)
   CHART_FIELD_IS_MISSING: 'Make sure the necessary fields are selected',
   CHART_CANNOT_FIND_FIELD: 'Field could not be found',

@@ -2,6 +2,7 @@ import { Entity, PrimaryColumn, Column, OneToMany } from 'typeorm';
 import { CoreWidgetBuilderCharts } from './core-widget-builder-charts.entity';
 import { CoreWidgetBuilderModule } from './core-widget-builder-module.entity';
 import { CoreWidgetBuilderUsedTables } from './core-widget-builder-used-tables.entity';
+import { CoreSharedWidgetBuilder } from './core-shared-widget-builder.entity';
 
 @Entity('core_widget_builder')
 export class CoreWidgetBuilder {
@@ -67,4 +68,7 @@ export class CoreWidgetBuilder {
 
   @OneToMany(() => CoreWidgetBuilderUsedTables, (usedTable) => usedTable.widgetBuilder)
   usedTables: CoreWidgetBuilderUsedTables[];
+
+  @OneToMany(() => CoreSharedWidgetBuilder, (shared) => shared.widgetBuilder)
+  sharedWidgetBuilders: CoreSharedWidgetBuilder[];
 }
