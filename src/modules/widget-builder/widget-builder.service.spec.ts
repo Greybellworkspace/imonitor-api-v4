@@ -16,6 +16,7 @@ import { CoreApplicationUsers } from '../../database/entities/core-application-u
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { WidgetBuilderQueryService } from './services/widget-builder-query.service';
 
 // ─── Mock Factories ─────────────────────────────────────────────────────────
 
@@ -61,6 +62,10 @@ const mockDateHelper = {
 
 const mockConfigService = {
   get: jest.fn().mockReturnValue('`iMonitorV3_1`'),
+};
+
+const mockWbQueryService = {
+  generateWidgetBuilderQuery: jest.fn(),
 };
 
 // ─── Test Data ───────────────────────────────────────────────────────────────
@@ -119,6 +124,7 @@ describe('WidgetBuilderService', () => {
         { provide: LegacyDataDbService, useValue: mockLegacyDataDb },
         { provide: DateHelperService, useValue: mockDateHelper },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: WidgetBuilderQueryService, useValue: mockWbQueryService },
       ],
     }).compile();
 
@@ -527,10 +533,7 @@ describe('WidgetBuilderService', () => {
         .mockResolvedValueOnce([{ 1: 1 }]) // admin check
         .mockResolvedValueOnce([]); // dashboard cleanup
 
-      const result = await service.changeOwner(
-        { widgetBuilderId: TEST_WB_ID, newOwnerId: 'new-owner' },
-        TEST_USER_ID,
-      );
+      const result = await service.changeOwner({ widgetBuilderId: TEST_WB_ID, newOwnerId: 'new-owner' }, TEST_USER_ID);
 
       expect(result).toBe(ErrorMessages.WIDGET_OWNER_UPDATED);
       expect(wbRepo.update).toHaveBeenCalledWith({ id: TEST_WB_ID }, { ownerId: 'new-owner' });

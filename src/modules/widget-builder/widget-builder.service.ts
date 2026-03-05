@@ -18,7 +18,8 @@ import { ErrorMessages } from '../../shared/constants/error-messages';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_WIDGETCHART_DB_FUNCTION, FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartStatus } from '../reports/enums';
-import { IChartData } from '../reports/dto/report-interfaces';
+import { IChartData, ITabularHeader } from '../reports/dto/report-interfaces';
+import { isEmptyString } from '../../shared/helpers/common.helper';
 import {
   SaveWidgetBuilderDto,
   EditWidgetBuilderDto,
@@ -26,12 +27,14 @@ import {
   ChangeWbOwnerDto,
   ShareWidgetBuilderDto,
 } from './dto';
+import { GenerateWidgetBuilderDto } from './dto/generate-widget-builder.dto';
 import {
   WidgetBuilderResponseDto,
   ListWidgetBuildersDto,
   WidgetBuilderAccessDto,
   SideTablesDto,
 } from './dto/widget-builder-response.dto';
+import { WidgetBuilderQueryService } from './services/widget-builder-query.service';
 
 /** Module table type filter matching v3 ModuleTableTypes.STATISTICS */
 const TABLE_TYPE_STATISTICS = 'statistics';
@@ -83,6 +86,7 @@ export class WidgetBuilderService {
     private readonly dateHelper: DateHelperService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly wbQueryService: WidgetBuilderQueryService,
   ) {
     this.coreDbName = this.configService.get<string>('coreDbName', '`iMonitorV3_1`');
   }
@@ -144,6 +148,34 @@ export class WidgetBuilderService {
     return {
       tables: [refTable, ...statisticTables],
     };
+  }
+
+  // --- Query Execution ---
+
+  /**
+   * Execute a widget builder tabular query.
+   * Builds the SQL via WidgetBuilderQueryService, executes it against iMonitorData,
+   * and returns header + body rows. Mirrors v3 executeQuery().
+   */
+  async executeQuery(
+    tabularObject: GenerateWidgetBuilderDto,
+  ): Promise<{ header: ITabularHeader[]; body: Array<Record<string, unknown>> }> {
+    const generateResult = await this.wbQueryService.generateWidgetBuilderQuery(tabularObject);
+
+    if (!isEmptyString(generateResult.query)) {
+      try {
+        const queryResult = await this.legacyDataDb.query<Record<string, unknown>>(generateResult.query);
+        return {
+          header: generateResult.header,
+          body: queryResult,
+        };
+      } catch (error) {
+        this.logger.error('executeQuery failed', (error as Error).stack);
+        throw new BadRequestException(ErrorMessages.ERROR_OCCURED);
+      }
+    }
+
+    return { header: [], body: [] };
   }
 
   // --- CRUD ---
