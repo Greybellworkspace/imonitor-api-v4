@@ -44,6 +44,18 @@ export const ErrorMessages = {
   ACCESS_DENIED: "You don't have access to this widget Builder",
   CHART_ERROR_DEFAULT: 'Operation failed, chart used in system and cannot be modified',
 
+  // Widget builder errors (preserving v3 widgetBuilderErrorMessages)
+  WIDGET_BUILDER_DOES_NOT_EXIST: 'Widget Builder does not exist',
+  SHARED_WIDGET_BUILDER_DOES_NOT_EXIST: 'Shared Widget Builder does not exist',
+  WIDGET_DOES_NOT_HAVE_MODULES: 'Widget Builder does not have moduleIds',
+  ERROR_WHILE_SAVING_WIDGETBUILDER: 'Error occured while saving the Widget Builder',
+  USER_ALREADY_OWNS_WIDGET_BUILDER: 'You already own this Widget Builder!',
+  WIDGET_BUILDER_IS_BEING_USED_IN_THE_FOLLOWING_DASHBOARDS:
+    'This widget builder is being used in the following dashboards: ',
+  WIDGET_BUILDER_DELETED: 'Widget Builder successfully deleted',
+  WIDGET_OWNER_UPDATED: 'Widget Builder owner successfully updated',
+  WIDGET_BUILDER_NAME_UPDATED: 'Widget Builder name successfully updated',
+
   // Chart generation errors (preserving v3 chartsErrorMessages)
   CHART_FIELD_IS_MISSING: 'Make sure the necessary fields are selected',
   CHART_CANNOT_FIND_FIELD: 'Field could not be found',
@@ -54,6 +66,11 @@ export const ErrorMessages = {
   CHART_TREND_ERROR: 'Error during trend chart construction',
   CHART_HOT_KEY_ERROR: 'Error during text transformation process',
   CHART_GENERATE_ERROR: 'error generating the charts',
+
+  // Widget Builder errors (preserving v3 messages for backward compat)
+  WIDGET_BUILDER_NOT_FOUND: 'Widget builder does not exist',
+  SHARED_WIDGET_BUILDER_NOT_FOUND: 'Shared widget builder does not exist',
+  CHART_NOT_FOUND: 'Report chart does not exist',
 
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
