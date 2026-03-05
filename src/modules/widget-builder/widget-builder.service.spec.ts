@@ -628,4 +628,80 @@ describe('WidgetBuilderService', () => {
       await expect(service.closeTab(TEST_WB_ID, TEST_CHART_ID)).rejects.toThrow(NotFoundException);
     });
   });
+
+  // ─── executeQuery ──────────────────────────────────────────────────────────
+
+  describe('executeQuery', () => {
+    const tabularObject = {
+      tables: [],
+      globalFilter: { condition: 'AND', rules: [] },
+      orderBy: [],
+      control: [],
+      operation: [],
+      compare: [],
+    } as any;
+
+    it('should return header and body when query is not empty', async () => {
+      const header = [{ text: 'Col1', datafield: 'col1' }];
+      const queryResult = [{ col1: 'value1' }];
+      mockWbQueryService.generateWidgetBuilderQuery.mockResolvedValue({
+        header,
+        query: 'SELECT * FROM t',
+        fieldsArray: [],
+      });
+      mockLegacyDataDb.query.mockResolvedValue(queryResult);
+
+      const result = await service.executeQuery(tabularObject);
+
+      expect(result.header).toEqual(header);
+      expect(result.body).toEqual(queryResult);
+      expect(mockWbQueryService.generateWidgetBuilderQuery).toHaveBeenCalledWith(tabularObject);
+      expect(mockLegacyDataDb.query).toHaveBeenCalledWith('SELECT * FROM t');
+    });
+
+    it('should return empty header and body when query is empty', async () => {
+      mockWbQueryService.generateWidgetBuilderQuery.mockResolvedValue({
+        header: [],
+        query: '',
+        fieldsArray: [],
+      });
+
+      const result = await service.executeQuery(tabularObject);
+
+      expect(result).toEqual({ header: [], body: [] });
+      expect(mockLegacyDataDb.query).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when DB query fails', async () => {
+      mockWbQueryService.generateWidgetBuilderQuery.mockResolvedValue({
+        header: [{ text: 'Col1' }],
+        query: 'SELECT * FROM t',
+        fieldsArray: [],
+      });
+      mockLegacyDataDb.query.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.executeQuery(tabularObject)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─── generateChartByType ──────────────────────────────────────────────────
+
+  describe('generateChartByType', () => {
+    it('should throw NotFoundException when widget builder not found', async () => {
+      wbRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.generateChartByType({ widgetBuilderId: 'bad-id', chartId: TEST_CHART_ID }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when chart not found', async () => {
+      wbRepo.findOne.mockResolvedValue(MOCK_DB_WB);
+      chartsRepo.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.generateChartByType({ widgetBuilderId: TEST_WB_ID, chartId: 'bad-chart' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
 });

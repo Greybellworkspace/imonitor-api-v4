@@ -20,6 +20,9 @@ const mockWidgetBuilderService = {
   saveSharedWidgetBuilder: jest.fn(),
   hasAccess: jest.fn(),
   closeTab: jest.fn(),
+  executeQuery: jest.fn(),
+  generateChartByType: jest.fn(),
+  dispatchChart: jest.fn(),
 };
 
 // ─── Test Data ────────────────────────────────────────────────────────────
@@ -162,6 +165,54 @@ describe('WidgetBuilderController', () => {
     it('should delegate to service.closeTab with wbId and chartId', () => {
       controller.closeTab(WB_ID, CHART_ID);
       expect(mockWidgetBuilderService.closeTab).toHaveBeenCalledWith(WB_ID, CHART_ID);
+    });
+  });
+
+  // ─── Chart Generation ────────────────────────────────────────────────
+
+  const MOCK_TABULAR = { tables: [], globalFilter: { condition: 'AND', rules: [] }, orderBy: [], control: [], operation: [], compare: [] } as any;
+  const MOCK_CHART = { id: CHART_ID, type: 'pie', options: {} } as any;
+
+  describe('executeQuery', () => {
+    it('should delegate to service.executeQuery', () => {
+      controller.executeQuery(MOCK_TABULAR);
+      expect(mockWidgetBuilderService.executeQuery).toHaveBeenCalledWith(MOCK_TABULAR);
+    });
+  });
+
+  describe('generateChartByType', () => {
+    it('should delegate to service.generateChartByType', () => {
+      const dto = { widgetBuilderId: WB_ID, chartId: CHART_ID };
+      controller.generateChartByType(dto);
+      expect(mockWidgetBuilderService.generateChartByType).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('chart generation endpoints', () => {
+    const chartEndpoints: Array<{ method: string; chartType: string }> = [
+      { method: 'pie', chartType: 'pie' },
+      { method: 'doughnut', chartType: 'doughnut' },
+      { method: 'verticalBar', chartType: 'vertical_bar' },
+      { method: 'horizontalBar', chartType: 'horizontal_bar' },
+      { method: 'progress', chartType: 'progress' },
+      { method: 'explodedProgress', chartType: 'exploded_progress' },
+      { method: 'counter', chartType: 'counter' },
+      { method: 'explodedCounter', chartType: 'exploded_counter' },
+      { method: 'percentage', chartType: 'percentage' },
+      { method: 'explodedPercentage', chartType: 'exploded_percentage' },
+      { method: 'trend', chartType: 'widget_builder_trend' },
+      { method: 'compareTrend', chartType: 'compare_trend' },
+      { method: 'soloBar', chartType: 'solo_bar' },
+      { method: 'topBar', chartType: 'top_least_bar' },
+      { method: 'tabularChart', chartType: 'tabular' },
+      { method: 'topLeastTable', chartType: 'top_least_tabular' },
+      { method: 'cumulativeTable', chartType: 'cumulative_table' },
+    ];
+
+    it.each(chartEndpoints)('$method should dispatch to service with chart type $chartType', ({ method, chartType }) => {
+      const dto = { tabular: MOCK_TABULAR, chart: MOCK_CHART };
+      (controller as any)[method](dto);
+      expect(mockWidgetBuilderService.dispatchChart).toHaveBeenCalledWith(chartType, MOCK_TABULAR, MOCK_CHART);
     });
   });
 });
