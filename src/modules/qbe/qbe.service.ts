@@ -11,8 +11,23 @@ import { FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartStatus } from '../reports/enums';
 import { IChartData, IReportOptions } from '../reports/dto/report-interfaces';
 import { DateFormats } from '../reports/services/query-builder.service';
-import { SaveQbeDto, UpdateQbeDto, ProcessQbeDto, QbeResponseDto, QbeRunDto } from './dto';
+import { AvailableRoles } from '../../shared/enums/roles.enum';
+import {
+  SaveQbeDto,
+  UpdateQbeDto,
+  ProcessQbeDto,
+  QbeResponseDto,
+  QbeRunDto,
+  QbeAutoCompleteTablesDto,
+  QbeAutoCompleteField,
+} from './dto';
 import { QbeQueryService, QbeErrorMessages } from './services/qbe-query.service';
+
+/** Module table type filter value matching v3 ModuleTableTypes.STATISTICS */
+const TABLE_TYPE_STATISTICS = 'STATISTICS';
+
+/** Ref table key matching v3 REF_TABLE_KEY */
+const REF_TABLE_KEY = 'REF_TABLE';
 
 /**
  * Safely parse a JSON string, returning null if input is null/undefined or malformed.
@@ -388,19 +403,145 @@ export class QbeService {
   }
 
   // ---------------------------------------------------------------------------
-  // Query Execution (Task 3.5)
+  // Query Execution
   // ---------------------------------------------------------------------------
 
-  async generateQbe(_dto: ProcessQbeDto, _userId: string): Promise<QbeRunDto> {
-    throw new Error('Not implemented — Task 3.5');
+  /**
+   * Validate and execute a QBE query.
+   * Delegates to QbeQueryService.processQuery(), strips processedQuery from result.
+   * Mirrors v3 qbe.service.ts generateQbe().
+   */
+  async generateQbe(dto: ProcessQbeDto, userId: string): Promise<QbeRunDto> {
+    const result = await this.qbeQueryService.processQuery(
+      dto.sql,
+      dto.timeFilter,
+      dto.fromDate,
+      dto.toDate,
+      userId,
+      dto.isShared,
+    );
+
+    // v3 strips processedQuery before returning to client
+    delete result.processedQuery;
+
+    return result;
   }
 
   // ---------------------------------------------------------------------------
-  // Tables (Task 3.6)
+  // Tables (QBE Autocomplete)
   // ---------------------------------------------------------------------------
 
-  async privilegedStatisticTables(_userId: string): Promise<unknown[]> {
-    throw new Error('Not implemented — Task 3.6');
+  /**
+   * Get accessible statistic tables for QBE autocomplete.
+   * Returns tables with their column metadata for SQL editor autocomplete.
+   * Mirrors v3 qbe.service.ts privilegedStatisticTables().
+   */
+  async privilegedStatisticTables(userId: string): Promise<QbeAutoCompleteTablesDto[]> {
+    // Query tables the user has access to via privileges (non-default role)
+    const tablesQuery = `
+      SELECT
+        mt.id,
+        mt.tableName AS name,
+        (SELECT name FROM core_application_roles WHERE id =
+          (SELECT RoleId FROM core_privileges WHERE UserId = ? AND
+            ModuleId = (SELECT mId FROM core_modules_tables WHERE id = mt.id))) AS role
+      FROM core_modules_tables mt
+      WHERE mId IN (
+        SELECT ModuleId FROM core_privileges
+        WHERE UserId = ?
+        AND RoleId <> (SELECT Id FROM core_application_roles WHERE name = ?)
+      )
+      AND tableType = ?
+      AND tableName <> ?
+      ORDER BY displayName
+    `;
+
+    const sideTables: Array<{ id: string; name: string; role: string }> = await this.dataSource.query(tablesQuery, [
+      userId,
+      userId,
+      AvailableRoles.DEFAULT,
+      TABLE_TYPE_STATISTICS,
+      REF_TABLE_KEY,
+    ]);
+
+    // Fetch fields for each table in parallel
+    const fieldsPromises = sideTables.map((table, index) => this.fetchTableFields(table.id, table.role, index));
+    const fulfilledResults = await Promise.all(fieldsPromises);
+
+    const statisticTables: QbeAutoCompleteTablesDto[] = sideTables.map((table) => ({
+      id: table.id,
+      name: table.name,
+      columns: [],
+    }));
+
+    for (const res of fulfilledResults) {
+      statisticTables[res.index].columns = res.fields;
+    }
+
+    // Fetch the ref table separately and prepend it
+    const refTable = await this.fetchRefTable(userId);
+
+    return [refTable, ...statisticTables];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private Helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch column metadata for a table. Filters encrypted fields for non-admin roles.
+   */
+  private async fetchTableFields(
+    tableId: string,
+    role: string,
+    index: number,
+  ): Promise<{ fields: QbeAutoCompleteField[]; index: number }> {
+    const isPrivilegedRole =
+      role === AvailableRoles.ADMIN || role === AvailableRoles.SUPER_USER || role === AvailableRoles.SUPER_ADMIN;
+
+    const whereClause = isPrivilegedRole ? 'WHERE tId = ?' : 'WHERE tId = ? AND isEncrypted <> 1';
+
+    const fieldsQuery = `
+      SELECT id, columnName AS name, type
+      FROM core_tables_field ${whereClause}
+    `;
+
+    const fields: QbeAutoCompleteField[] = await this.dataSource.query(fieldsQuery, [tableId]);
+
+    return { fields, index };
+  }
+
+  /**
+   * Fetch the ref table and its columns for QBE autocomplete.
+   */
+  private async fetchRefTable(userId: string): Promise<QbeAutoCompleteTablesDto> {
+    const refTableQuery = `
+      SELECT
+        mt.id,
+        mt.tableName AS name,
+        (SELECT Name FROM core_application_roles WHERE Id =
+          (SELECT RoleId FROM core_privileges WHERE UserId = ? AND
+            ModuleId = (SELECT mId FROM core_modules_tables WHERE Id = mt.id))) AS role
+      FROM core_modules_tables mt
+      WHERE tableType = ? AND tableName = ?
+    `;
+
+    const refTableResult: Array<{ id: string; name: string; role: string }> = await this.dataSource.query(
+      refTableQuery,
+      [userId, TABLE_TYPE_STATISTICS, REF_TABLE_KEY],
+    );
+
+    const refTableData: QbeAutoCompleteTablesDto = {
+      id: refTableResult[0]?.id || '',
+      name: refTableResult[0]?.name || '',
+      columns: [],
+    };
+
+    if (refTableData.id) {
+      refTableData.columns = (await this.fetchTableFields(refTableData.id, refTableResult[0]?.role || '', 0)).fields;
+    }
+
+    return refTableData;
   }
 
   // ---------------------------------------------------------------------------
