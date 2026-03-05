@@ -3,7 +3,7 @@
 **Track ID:** phase3.3.2-reporting_20260304
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-04
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Overview
 
@@ -79,29 +79,29 @@ Verify both modules work together, ensure no regressions in Reports, and finaliz
 
 ### Tasks
 
-- [ ] Task 4.1: Verify WidgetBuilder and QBE modules load correctly alongside Reports in `AppModule`
-- [ ] Task 4.2: Verify shared chart helpers work correctly when called from all three modules (Reports, WidgetBuilder, QBE)
-- [ ] Task 4.3: Verify privilege/access guards work consistently across all three modules
-- [ ] Task 4.4: Run full test suite — confirm no regressions in existing 421+ tests
-- [ ] Task 4.5: Update CLAUDE.md — add WidgetBuilder and QBE endpoints to the endpoint inventory, update architecture section
-- [ ] Task 4.6: Final `npm run build && npm run lint && npm test` — all green
+- [x] Task 4.1: Verify WidgetBuilder and QBE modules load correctly alongside Reports in `AppModule`
+- [x] Task 4.2: Verify shared chart helpers work correctly when called from all three modules (Reports, WidgetBuilder, QBE)
+- [x] Task 4.3: Verify privilege/access guards work consistently across all three modules
+- [x] Task 4.4: Run full test suite — confirm no regressions in existing 421+ tests
+- [x] Task 4.5: Update CLAUDE.md — add WidgetBuilder and QBE endpoints to the endpoint inventory, update architecture section
+- [x] Task 4.6: Final `npm run build && npm run lint && npm test` — all green
 
 ### Verification
 
-- [ ] 46 total endpoints added (32 WidgetBuilder + 14 QBE)
-- [ ] All existing tests still pass (no regressions)
-- [ ] CLAUDE.md updated with new endpoints
-- [ ] Ready for merge to main
+- [x] 46 total endpoints added (32 WidgetBuilder + 14 QBE)
+- [x] All existing tests still pass (no regressions)
+- [x] CLAUDE.md updated with new endpoints
+- [x] Ready for merge to main
 
 ## Final Verification
 
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] 32 WidgetBuilder endpoints match v3 request/response contracts
-- [ ] 14 QBE endpoints match v3 request/response contracts
-- [ ] `WidgetBuilderQueryService` extracted as dedicated service
-- [ ] `QbeQueryService` extracted as dedicated service
-- [ ] Ready for review
+- [x] All acceptance criteria met
+- [x] Tests passing (611 tests, 32 suites)
+- [x] 32 WidgetBuilder endpoints match v3 request/response contracts
+- [x] 14 QBE endpoints match v3 request/response contracts
+- [x] `WidgetBuilderQueryService` extracted as dedicated service
+- [x] `QbeQueryService` extracted as dedicated service
+- [x] Ready for review
 
 ---
 

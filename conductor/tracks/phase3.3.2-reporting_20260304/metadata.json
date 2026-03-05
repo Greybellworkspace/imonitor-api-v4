@@ -2,24 +2,33 @@
   "id": "phase3.3.2-reporting_20260304",
   "title": "Phase 3.3.2: WidgetBuilder, QBE & Remaining Reporting",
   "type": "feature",
-  "status": "in_progress",
+  "status": "complete",
   "created": "2026-03-04T00:00:00.000Z",
-  "updated": "2026-03-05T12:42:00.000Z",
-  "current_phase": 3,
-  "current_task": "3.1",
+  "updated": "2026-03-05T13:45:00.000Z",
+  "current_phase": 4,
+  "current_task": "4.6",
   "phases": {
     "total": 4,
-    "completed": 2
+    "completed": 4
   },
   "tasks": {
     "total": 33,
-    "completed": 18
+    "completed": 33
   },
   "commits": [
     "c2b7bc6: feat: add widget-builder chart generators (counter, percentage, bar, table, trend)",
     "b58ec51: feat: wire WidgetBuilderService.executeQuery() with query service and DB execution",
     "6159802: feat: implement generateChartByType() dispatcher for all 19 chart types",
     "904dd4c: feat: wire 18 POST /generate/* chart endpoints on WidgetBuilderController",
-    "503db48: test: add unit tests for WB generate endpoints, executeQuery, generateChartByType"
+    "503db48: test: add unit tests for WB generate endpoints, executeQuery, generateChartByType",
+    "375f7fc: feat: create QbeModule scaffold",
+    "b580f64: feat: add QBE DTOs",
+    "3fa5f72: feat: implement QbeQueryService",
+    "b5df3e1: feat: implement QbeService CRUD",
+    "650af8b: feat: implement generateQbe() and privilegedStatisticTables()",
+    "e1fe629: feat: wire QBE chart generation via shared Reports chart generators",
+    "e946bd4: feat: wire QBE controller with proper DTOs and Swagger decorators",
+    "ae4bfcf: test: add unit tests for QBE module",
+    "cbd81ac: docs: update CLAUDE.md with WidgetBuilder and QBE endpoints"
   ]
 }
