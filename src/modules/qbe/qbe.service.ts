@@ -1,16 +1,27 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Repository, DataSource } from 'typeorm';
 import { v4 } from 'uuid';
 import { CoreReport } from '../../database/entities/core-report.entity';
 import { CoreReportCharts } from '../../database/entities/core-report-charts.entity';
 import { CoreSharedQbeReport } from '../../database/entities/core-shared-qbe-report.entity';
+import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartStatus } from '../reports/enums';
-import { IChartData, IReportOptions } from '../reports/dto/report-interfaces';
+import { IChartData, IReportOptions, IFieldsArrayEntry, ICustomOperationColumn } from '../reports/dto/report-interfaces';
 import { DateFormats } from '../reports/services/query-builder.service';
+import {
+  generatePie as generatePieChart,
+  generateDoughnut as generateDoughnutChart,
+  generateTrend as generateTrendChart,
+  generateVerticalBar as generateVerticalBarChart,
+  generateHorizontalBar as generateHorizontalBarChart,
+  generateProgress as generateProgressChart,
+  generateExplodedProgress as generateExplodedProgressChart,
+} from '../reports/charts';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import {
   SaveQbeDto,
@@ -20,6 +31,7 @@ import {
   QbeRunDto,
   QbeAutoCompleteTablesDto,
   QbeAutoCompleteField,
+  GenerateQbeChartDto,
 } from './dto';
 import { QbeQueryService, QbeErrorMessages } from './services/qbe-query.service';
 
@@ -45,6 +57,9 @@ function safeJsonParse<T>(value: string | null | undefined): T | null {
 export class QbeService {
   private readonly logger = new Logger(QbeService.name);
 
+  /** Core DB name for chart hotkey transforms */
+  private readonly coreDbName: string;
+
   constructor(
     @InjectRepository(CoreReport)
     private readonly reportRepo: Repository<CoreReport>,
@@ -53,9 +68,13 @@ export class QbeService {
     @InjectRepository(CoreSharedQbeReport)
     private readonly sharedQbeRepo: Repository<CoreSharedQbeReport>,
     private readonly dataSource: DataSource,
+    private readonly configService: ConfigService,
+    private readonly legacyDataDb: LegacyDataDbService,
     private readonly dateHelper: DateHelperService,
     private readonly qbeQueryService: QbeQueryService,
-  ) {}
+  ) {
+    this.coreDbName = this.configService.get<string>('DB_NAME') || '';
+  }
 
   // ---------------------------------------------------------------------------
   // CRUD
@@ -545,10 +564,130 @@ export class QbeService {
   }
 
   // ---------------------------------------------------------------------------
-  // Chart Generation (Task 3.7)
+  // Chart Generation
   // ---------------------------------------------------------------------------
 
-  async generateChart(_chartType: string, _dto: unknown, _userId: string): Promise<unknown> {
-    throw new Error('Not implemented — Task 3.7');
+  /**
+   * Build chart generate result from QBE query execution.
+   * Mirrors v3 returnGenerateReportResult() when isQbe=true:
+   * executes the QBE SQL, maps fields to IFieldsArrayEntry[], returns
+   * { query: processedQuery, fieldsArray, tables: [], operation: [] }.
+   */
+  private async buildQbeGenerateResult(
+    dto: ProcessQbeDto,
+    userId: string,
+  ): Promise<{
+    query: string;
+    fieldsArray: IFieldsArrayEntry[];
+    tables: unknown[];
+    operation: ICustomOperationColumn[];
+  }> {
+    const qbeResult = await this.qbeQueryService.processQuery(
+      dto.sql,
+      dto.timeFilter,
+      dto.fromDate,
+      dto.toDate,
+      userId,
+      dto.isShared,
+    );
+
+    // Map QBE fields to IFieldsArrayEntry format (isCustomColumn=true, like v3 QBE)
+    const fieldsArray: IFieldsArrayEntry[] = qbeResult.fields.map((val, index) => ({
+      draggedId: val.draggedId,
+      columnDisplayName: val.columnDisplayName,
+      type: val.type,
+      operation: val.operation || 'sum',
+      isCustomColumn: true,
+      customColumnType: 'QBE',
+      builtString: '',
+      tableIndex: index,
+    }));
+
+    return {
+      query: qbeResult.processedQuery || '',
+      fieldsArray,
+      tables: [],
+      operation: [],
+    };
+  }
+
+  /**
+   * Generate a chart from QBE data by type.
+   * Dispatches to the shared chart generators from Reports module.
+   * Mirrors v3 QBE controller chart endpoints.
+   */
+  async generateChart(chartType: string, dto: GenerateQbeChartDto, userId: string): Promise<IChartData> {
+    const generateResult = await this.buildQbeGenerateResult(dto.tabular, userId);
+    const chart = dto.chart;
+    const dateObject = { fromDate: dto.tabular.fromDate, toDate: dto.tabular.toDate };
+
+    switch (chartType) {
+      case 'pie':
+        return generatePieChart(generateResult, chart, dateObject, this.legacyDataDb, this.dateHelper, this.coreDbName);
+      case 'doughnut':
+        return generateDoughnutChart(
+          generateResult,
+          chart,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+      case 'trend':
+        return generateTrendChart(
+          generateResult,
+          chart,
+          dateObject,
+          [], // QBE has no compare columns
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+      case 'vertical_bar':
+        return generateVerticalBarChart(
+          generateResult,
+          chart,
+          dateObject,
+          [], // QBE has no compare columns
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+      case 'horizontal_bar':
+        return generateHorizontalBarChart(
+          generateResult,
+          chart,
+          dateObject,
+          [], // QBE has no compare columns
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+      case 'progress': {
+        const result = await generateProgressChart(
+          generateResult,
+          chart,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+        return result.chart;
+      }
+      case 'exploded_progress': {
+        const result = await generateExplodedProgressChart(
+          generateResult,
+          chart,
+          dateObject,
+          this.legacyDataDb,
+          this.dateHelper,
+          this.coreDbName,
+        );
+        return result.chart;
+      }
+      default:
+        this.logger.warn(`Unknown QBE chart type: ${chartType}`);
+        return chart;
+    }
   }
 }

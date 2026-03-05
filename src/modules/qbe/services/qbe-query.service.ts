@@ -206,10 +206,7 @@ export class QbeQueryService {
         maxInterval = MaxIntervals.maxHourInterval;
         converter = TimeConvert.MinutesAndHours;
         fromDate = this.dateHelper.formatDate(DateFormats.ReportFormatHourly, this.dateHelper.parseISO(fromDate));
-        toDate = this.dateHelper.formatDate(
-          DateFormats.ReportFormatHoulyEndOfHour,
-          this.dateHelper.parseISO(toDate),
-        );
+        toDate = this.dateHelper.formatDate(DateFormats.ReportFormatHoulyEndOfHour, this.dateHelper.parseISO(toDate));
         break;
       case TimeFilters.day:
       case TimeFilters.week:
