@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } fro
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
+import { ChartTypes } from '../reports/enums';
 import { WidgetBuilderService } from './widget-builder.service';
 import {
   SaveWidgetBuilderDto,
@@ -9,6 +10,9 @@ import {
   RenameWidgetBuilderDto,
   ChangeWbOwnerDto,
   ShareWidgetBuilderDto,
+  GenerateWidgetBuilderDto,
+  GenerateWbChartDto,
+  GenerateChartByTypeDto,
 } from './dto';
 
 @ApiTags('WidgetBuilder')
@@ -120,5 +124,140 @@ export class WidgetBuilderController {
   @ApiResponse({ status: 201, description: 'Shared widget builder saved as own' })
   saveSharedWidgetBuilder(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.widgetBuilderService.saveSharedWidgetBuilder(id, userId);
+  }
+
+  // --- Chart Generation Endpoints ---
+
+  @Post('generate/tabular')
+  @ApiOperation({ summary: 'Execute widget builder query (tabular data)' })
+  @ApiResponse({ status: 201, description: 'Query executed, tabular result returned' })
+  executeQuery(@Body() dto: GenerateWidgetBuilderDto) {
+    return this.widgetBuilderService.executeQuery(dto);
+  }
+
+  @Post('generate/chartbytype')
+  @ApiOperation({ summary: 'Generate chart by type from saved widget builder' })
+  @ApiResponse({ status: 201, description: 'Chart generated from saved config' })
+  generateChartByType(@Body() dto: GenerateChartByTypeDto) {
+    return this.widgetBuilderService.generateChartByType(dto);
+  }
+
+  @Post('generate/pie')
+  @ApiOperation({ summary: 'Generate pie chart' })
+  @ApiResponse({ status: 201, description: 'Pie chart generated' })
+  pie(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.PIE, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/doughnut')
+  @ApiOperation({ summary: 'Generate doughnut chart' })
+  @ApiResponse({ status: 201, description: 'Doughnut chart generated' })
+  doughnut(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.DOUGHNUT, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/vertical')
+  @ApiOperation({ summary: 'Generate vertical bar chart' })
+  @ApiResponse({ status: 201, description: 'Vertical bar chart generated' })
+  verticalBar(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.VERTICAL_BAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/horizontal')
+  @ApiOperation({ summary: 'Generate horizontal bar chart' })
+  @ApiResponse({ status: 201, description: 'Horizontal bar chart generated' })
+  horizontalBar(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.HORIZONTAL_BAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/progress')
+  @ApiOperation({ summary: 'Generate progress gauge chart' })
+  @ApiResponse({ status: 201, description: 'Progress chart generated' })
+  progress(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.PROGRESS, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/progress/exploded')
+  @ApiOperation({ summary: 'Generate exploded progress gauge chart' })
+  @ApiResponse({ status: 201, description: 'Exploded progress chart generated' })
+  explodedProgress(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.EXPLODED_PROGRESS, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/counter')
+  @ApiOperation({ summary: 'Generate counter chart' })
+  @ApiResponse({ status: 201, description: 'Counter chart generated' })
+  counter(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.COUNTER, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/counter/exploded')
+  @ApiOperation({ summary: 'Generate exploded counter chart' })
+  @ApiResponse({ status: 201, description: 'Exploded counter chart generated' })
+  explodedCounter(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.EXPLODED_COUNTER, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/percentage')
+  @ApiOperation({ summary: 'Generate percentage chart' })
+  @ApiResponse({ status: 201, description: 'Percentage chart generated' })
+  percentage(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.PERCENTAGE, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/percentage/exploded')
+  @ApiOperation({ summary: 'Generate exploded percentage chart' })
+  @ApiResponse({ status: 201, description: 'Exploded percentage chart generated' })
+  explodedPercentage(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.EXPLODED_PERCENTAGE, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/trend')
+  @ApiOperation({ summary: 'Generate widget builder trend chart' })
+  @ApiResponse({ status: 201, description: 'Trend chart generated' })
+  trend(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.WIDGET_BUILDER_TREND, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/trend/compare')
+  @ApiOperation({ summary: 'Generate compare trend chart' })
+  @ApiResponse({ status: 201, description: 'Compare trend chart generated' })
+  compareTrend(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.COMPARE_TREND, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/solo')
+  @ApiOperation({ summary: 'Generate solo bar chart' })
+  @ApiResponse({ status: 201, description: 'Solo bar chart generated' })
+  soloBar(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.SOLO_BAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/bar/top')
+  @ApiOperation({ summary: 'Generate top/least bar chart' })
+  @ApiResponse({ status: 201, description: 'Top bar chart generated' })
+  topBar(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.TOP_LEAST_BAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/table')
+  @ApiOperation({ summary: 'Generate tabular chart' })
+  @ApiResponse({ status: 201, description: 'Tabular chart generated' })
+  tabularChart(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.TABULAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/table/topleast')
+  @ApiOperation({ summary: 'Generate top/least table chart' })
+  @ApiResponse({ status: 201, description: 'Top/least table generated' })
+  topLeastTable(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.TOP_LEAST_TABULAR, dto.tabular, dto.chart);
+  }
+
+  @Post('generate/table/cumulative')
+  @ApiOperation({ summary: 'Generate cumulative table chart' })
+  @ApiResponse({ status: 201, description: 'Cumulative table generated' })
+  cumulativeTable(@Body() dto: GenerateWbChartDto) {
+    return this.widgetBuilderService.dispatchChart(ChartTypes.CUMULATIVE_TABLE, dto.tabular, dto.chart);
   }
 }
