@@ -58,7 +58,7 @@ Implement the two remaining modules. RotatingDashboard depends on Dashboard. Dat
 - [x] Task 3.6: Implement `DataAnalysisService` — save (create + insert chart/report join rows), update, list (own + shared, privilege filtering), getById, share, getSharedById, saveShared (duplicate with reports), saveDefault, favorite toggle
 - [x] Task 3.7: Implement DataAnalysis exports — exportHtml, exportPdf, exportExcel (reuse ExportHelperService from Reports)
 - [x] Task 3.8: Wire `DataAnalysisController` — 12 endpoints with PrivilegeGuard, Swagger, DTOs
-- [ ] Task 3.9: Unit tests — DataAnalysisService + Controller
+- [x] Task 3.9: Unit tests — DataAnalysisService + Controller
 
 ### Verification
 
