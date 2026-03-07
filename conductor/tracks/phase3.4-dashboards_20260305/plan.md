@@ -51,9 +51,9 @@ Implement the two remaining modules. RotatingDashboard depends on Dashboard. Dat
 ### Tasks
 
 - [x] Task 3.1: Scaffold `RotatingDashboardModule` — module, controller, service; register in AppModule
-- [ ] Task 3.2: Implement `RotatingDashboardService` — save, list (own + shared), getById, update, delete, share, getSharedById, saveShared (duplicate with nested dashboards), favorite toggle
-- [ ] Task 3.3: Wire `RotatingDashboardController` — 9 endpoints with PrivilegeGuard, Swagger, DTOs
-- [ ] Task 3.4: Unit tests — RotatingDashboardService + Controller
+- [x] Task 3.2: Implement `RotatingDashboardService` — save, list (own + shared), getById, update, delete, share, getSharedById, saveShared (duplicate with nested dashboards), favorite toggle
+- [x] Task 3.3: Wire `RotatingDashboardController` — 9 endpoints with PrivilegeGuard, Swagger, DTOs
+- [x] Task 3.4: Unit tests — RotatingDashboardService + Controller
 - [ ] Task 3.5: Scaffold `DataAnalysisModule` — module, controller, service; register in AppModule
 - [ ] Task 3.6: Implement `DataAnalysisService` — save (create + insert chart/report join rows), update, list (own + shared, privilege filtering), getById, share, getSharedById, saveShared (duplicate with reports), saveDefault, favorite toggle
 - [ ] Task 3.7: Implement DataAnalysis exports — exportHtml, exportPdf, exportExcel (reuse ExportHelperService from Reports)
