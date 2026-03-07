@@ -50,7 +50,7 @@ Implement the two remaining modules. RotatingDashboard depends on Dashboard. Dat
 
 ### Tasks
 
-- [ ] Task 3.1: Scaffold `RotatingDashboardModule` — module, controller, service; register in AppModule
+- [x] Task 3.1: Scaffold `RotatingDashboardModule` — module, controller, service; register in AppModule
 - [ ] Task 3.2: Implement `RotatingDashboardService` — save, list (own + shared), getById, update, delete, share, getSharedById, saveShared (duplicate with nested dashboards), favorite toggle
 - [ ] Task 3.3: Wire `RotatingDashboardController` — 9 endpoints with PrivilegeGuard, Swagger, DTOs
 - [ ] Task 3.4: Unit tests — RotatingDashboardService + Controller
