@@ -29,9 +29,7 @@ describe('DashboardController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DashboardController],
-      providers: [
-        { provide: DashboardService, useValue: mockDashboardService },
-      ],
+      providers: [{ provide: DashboardService, useValue: mockDashboardService }],
     })
       .overrideGuard(PrivilegeGuard)
       .useValue({ canActivate: () => true })
@@ -44,16 +42,10 @@ describe('DashboardController', () => {
     it('should create dashboard and return ID', async () => {
       mockDashboardService.save.mockResolvedValue('new-dash-id');
 
-      const result = await controller.save(
-        { name: 'Test', charts: [] },
-        TEST_USER_ID,
-      );
+      const result = await controller.save({ name: 'Test', charts: [] }, TEST_USER_ID);
 
       expect(result).toEqual({ id: 'new-dash-id' });
-      expect(mockDashboardService.save).toHaveBeenCalledWith(
-        { name: 'Test', charts: [] },
-        TEST_USER_ID,
-      );
+      expect(mockDashboardService.save).toHaveBeenCalledWith({ name: 'Test', charts: [] }, TEST_USER_ID);
     });
   });
 
@@ -61,22 +53,14 @@ describe('DashboardController', () => {
     it('should update dashboard when IDs match', async () => {
       mockDashboardService.update.mockResolvedValue(undefined);
 
-      await controller.update(
-        TEST_DASHBOARD_ID,
-        { id: TEST_DASHBOARD_ID, name: 'Updated', charts: [] },
-        TEST_USER_ID,
-      );
+      await controller.update(TEST_DASHBOARD_ID, { id: TEST_DASHBOARD_ID, name: 'Updated', charts: [] }, TEST_USER_ID);
 
       expect(mockDashboardService.update).toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException when IDs do not match', async () => {
       await expect(
-        controller.update(
-          TEST_DASHBOARD_ID,
-          { id: 'different-id', name: 'Updated', charts: [] },
-          TEST_USER_ID,
-        ),
+        controller.update(TEST_DASHBOARD_ID, { id: 'different-id', name: 'Updated', charts: [] }, TEST_USER_ID),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -120,10 +104,7 @@ describe('DashboardController', () => {
 
       await controller.share(TEST_DASHBOARD_ID, { id: TEST_DASHBOARD_ID, userIds: ['user-1', 'user-2'] });
 
-      expect(mockDashboardService.share).toHaveBeenCalledWith(
-        TEST_DASHBOARD_ID,
-        ['user-1', 'user-2'],
-      );
+      expect(mockDashboardService.share).toHaveBeenCalledWith(TEST_DASHBOARD_ID, ['user-1', 'user-2']);
     });
   });
 

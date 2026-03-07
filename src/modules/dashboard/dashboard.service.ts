@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { v4 } from 'uuid';
@@ -151,14 +145,8 @@ export class DashboardService {
       );
 
       // Delete old associations, re-insert new ones
-      await this.dataSource.query(
-        'DELETE FROM core_dashboard_widget_builder WHERE dashboardId = ?',
-        [dto.id],
-      );
-      await this.dataSource.query(
-        'DELETE FROM core_dashboard_chart WHERE dashboardId = ?',
-        [dto.id],
-      );
+      await this.dataSource.query('DELETE FROM core_dashboard_widget_builder WHERE dashboardId = ?', [dto.id]);
+      await this.dataSource.query('DELETE FROM core_dashboard_chart WHERE dashboardId = ?', [dto.id]);
 
       await this.bulkInsertWbAndCharts(dto.id, widgetBuilderIds, chartIds);
     } catch (error) {
@@ -198,10 +186,7 @@ export class DashboardService {
       ORDER BY \`isDefault\` DESC, isFavorite DESC,
         \`updatedAt\` DESC, \`createdAt\` DESC, name DESC`;
 
-    const dashboards: ListDashboardDto[] = await this.dataSource.query(listQuery, [
-      currentUserId,
-      currentUserId,
-    ]);
+    const dashboards: ListDashboardDto[] = await this.dataSource.query(listQuery, [currentUserId, currentUserId]);
 
     // Get user's privileged tables
     const privilegedTablesQuery = `
@@ -216,13 +201,13 @@ export class DashboardService {
         )
       )`;
 
-    const privilegedTableResult: Array<{ privilegedTables: string }> =
-      await this.dataSource.query(privilegedTablesQuery, [currentUserId, AvailableRoles.DEFAULT]);
+    const privilegedTableResult: Array<{ privilegedTables: string }> = await this.dataSource.query(
+      privilegedTablesQuery,
+      [currentUserId, AvailableRoles.DEFAULT],
+    );
 
     const privilegedTablesRaw = privilegedTableResult[0]?.privilegedTables;
-    const privilegedTables: string[] = privilegedTablesRaw
-      ? JSON.parse('[' + privilegedTablesRaw + ']')
-      : [];
+    const privilegedTables: string[] = privilegedTablesRaw ? JSON.parse('[' + privilegedTablesRaw + ']') : [];
 
     const DEFAULT_ADMIN_ID = '1';
     const response: ListDashboardDto[] = [];
@@ -244,10 +229,9 @@ export class DashboardService {
           SELECT widgetBuilderId FROM core_dashboard_widget_builder WHERE dashboardId = ?
         )`;
 
-      const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(
-        usedTablesQuery,
-        [dashboard.id],
-      );
+      const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(usedTablesQuery, [
+        dashboard.id,
+      ]);
 
       let usedTables: string[] = usedTablesResult[0]?.usedTables
         ? JSON.parse('[' + usedTablesResult[0].usedTables + ']')
@@ -321,10 +305,9 @@ export class DashboardService {
     try {
       const values = userIds.map((userId) => [dashboardId, userId, this.dateHelper.formatDate()]);
       if (values.length > 0) {
-        await this.dataSource.query(
-          'INSERT INTO core_shared_dashboard (dashboardId, ownerId, createdAt) VALUES ?',
-          [values],
-        );
+        await this.dataSource.query('INSERT INTO core_shared_dashboard (dashboardId, ownerId, createdAt) VALUES ?', [
+          values,
+        ]);
       }
     } catch (error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
@@ -411,7 +394,14 @@ export class DashboardService {
     }
 
     try {
-      await this.addDashboardToDb(id, currentUserId, sharedDashboard.name, widgetBuilderCharts, widgetBuilderIds, chartIds);
+      await this.addDashboardToDb(
+        id,
+        currentUserId,
+        sharedDashboard.name,
+        widgetBuilderCharts,
+        widgetBuilderIds,
+        chartIds,
+      );
     } catch (error) {
       await this.widgetBuilderService.cleanWidgetBuilders(duplicatedWbIds);
       throw new BadRequestException((error as Error).message);
@@ -528,10 +518,7 @@ export class DashboardService {
    * Check if a dashboard ID is a shared dashboard.
    */
   async isSharedDashboard(id: string): Promise<boolean> {
-    const exists = await this.sharedDashboardRepo
-      .createQueryBuilder('sd')
-      .where('sd.id = :id', { id })
-      .getExists();
+    const exists = await this.sharedDashboardRepo.createQueryBuilder('sd').where('sd.id = :id', { id }).getExists();
     return exists;
   }
 
@@ -555,10 +542,7 @@ export class DashboardService {
   // --------------- Private helpers ---------------
 
   private async dashboardExists(id: string): Promise<boolean> {
-    const result = await this.dashboardRepo
-      .createQueryBuilder('d')
-      .where('d.id = :id', { id })
-      .getExists();
+    const result = await this.dashboardRepo.createQueryBuilder('d').where('d.id = :id', { id }).getExists();
     return result;
   }
 
@@ -567,10 +551,9 @@ export class DashboardService {
       SELECT GROUP_CONCAT(CONCAT('"', tableId, '"')) AS usedTables
       FROM core_widget_builder_used_tables WHERE widgetBuilderId = ?`;
 
-    const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(
-      usedTablesQuery,
-      [widgetBuilderId],
-    );
+    const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(usedTablesQuery, [
+      widgetBuilderId,
+    ]);
 
     const raw = usedTablesResult[0]?.usedTables;
     if (!raw) return; // no tables used — no restriction
@@ -592,10 +575,10 @@ export class DashboardService {
         )
       )`;
 
-    const privilegedResult: Array<{ privilegedTables: string }> = await this.dataSource.query(
-      privilegedTablesQuery,
-      [userId, AvailableRoles.DEFAULT],
-    );
+    const privilegedResult: Array<{ privilegedTables: string }> = await this.dataSource.query(privilegedTablesQuery, [
+      userId,
+      AvailableRoles.DEFAULT,
+    ]);
 
     const privRaw = privilegedResult[0]?.privilegedTables;
     const privilegedTables: string[] = privRaw ? JSON.parse('[' + privRaw + ']') : [];
@@ -636,18 +619,14 @@ export class DashboardService {
   ): Promise<void> {
     if (widgetBuilderIds.size > 0) {
       const wbValues = Array.from(widgetBuilderIds).map((wbId) => [dashboardId, wbId]);
-      await this.dataSource.query(
-        'INSERT INTO core_dashboard_widget_builder (dashboardId, widgetBuilderId) VALUES ?',
-        [wbValues],
-      );
+      await this.dataSource.query('INSERT INTO core_dashboard_widget_builder (dashboardId, widgetBuilderId) VALUES ?', [
+        wbValues,
+      ]);
     }
 
     if (chartIds.size > 0) {
       const chartValues = Array.from(chartIds).map((cId) => [dashboardId, cId]);
-      await this.dataSource.query(
-        'INSERT INTO core_dashboard_chart (dashboardId, chartId) VALUES ?',
-        [chartValues],
-      );
+      await this.dataSource.query('INSERT INTO core_dashboard_chart (dashboardId, chartId) VALUES ?', [chartValues]);
     }
   }
 }

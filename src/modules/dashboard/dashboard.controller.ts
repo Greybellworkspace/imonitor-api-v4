@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Body,
-  UseGuards,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -35,11 +26,7 @@ export class DashboardController {
   @Put(':id')
   @ApiOperation({ summary: 'Update an existing dashboard' })
   @ApiResponse({ status: 200, description: 'Dashboard updated' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: EditDashboardDto,
-    @CurrentUser('id') userId: string,
-  ) {
+  async update(@Param('id') id: string, @Body() dto: EditDashboardDto, @CurrentUser('id') userId: string) {
     if (dto.id !== id) {
       throw new ForbiddenException(ErrorMessages.IDS_NOT_MATCHING);
     }

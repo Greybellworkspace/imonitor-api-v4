@@ -52,9 +52,7 @@ describe('Dashboard DTOs', () => {
     it('should validate a valid save DTO', async () => {
       const dto = plainToInstance(SaveDashboardDto, {
         name: 'Test Dashboard',
-        charts: [
-          { chartId: 'c1', widgetBuilderId: 'wb1', cols: 6, rows: 4, x: 0, y: 0 },
-        ],
+        charts: [{ chartId: 'c1', widgetBuilderId: 'wb1', cols: 6, rows: 4, x: 0, y: 0 }],
       });
       const errors = await validate(dto);
       expect(errors).toHaveLength(0);

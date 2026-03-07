@@ -125,10 +125,7 @@ describe('DashboardService', () => {
       mockDataSource.query.mockResolvedValue([{ usedTables: null }]);
       dashboardRepo.save.mockResolvedValue({});
 
-      const result = await service.save(
-        { name: 'Test Dashboard', charts: [sampleChart] },
-        TEST_USER_ID,
-      );
+      const result = await service.save({ name: 'Test Dashboard', charts: [sampleChart] }, TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -139,10 +136,7 @@ describe('DashboardService', () => {
       dashboardRepo.save.mockResolvedValue({});
       mockDataSource.query.mockResolvedValue([]);
 
-      const result = await service.save(
-        { name: 'Title Only', charts: [titleChart as any] },
-        TEST_USER_ID,
-      );
+      const result = await service.save({ name: 'Title Only', charts: [titleChart as any] }, TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(widgetBuilderRepo.findOne).not.toHaveBeenCalled();
@@ -151,9 +145,9 @@ describe('DashboardService', () => {
     it('should throw if widget builder does not exist', async () => {
       widgetBuilderRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.save({ name: 'Test', charts: [sampleChart] }, TEST_USER_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.save({ name: 'Test', charts: [sampleChart] }, TEST_USER_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw if chart does not exist', async () => {
@@ -161,9 +155,9 @@ describe('DashboardService', () => {
       mockDataSource.query.mockResolvedValue([{ usedTables: null }]);
       wbChartsRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.save({ name: 'Test', charts: [sampleChart] }, TEST_USER_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.save({ name: 'Test', charts: [sampleChart] }, TEST_USER_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -178,10 +172,7 @@ describe('DashboardService', () => {
       mockDataSource.query.mockResolvedValue([{ usedTables: null }]);
       dashboardRepo.update.mockResolvedValue({});
 
-      await service.update(
-        { id: TEST_DASHBOARD_ID, name: 'Updated', charts: [sampleChart] },
-        TEST_USER_ID,
-      );
+      await service.update({ id: TEST_DASHBOARD_ID, name: 'Updated', charts: [sampleChart] }, TEST_USER_ID);
 
       expect(dashboardRepo.update).toHaveBeenCalled();
     });
@@ -191,10 +182,7 @@ describe('DashboardService', () => {
       qb.getExists.mockResolvedValue(false);
 
       await expect(
-        service.update(
-          { id: TEST_DASHBOARD_ID, name: 'Updated', charts: [sampleChart] },
-          TEST_USER_ID,
-        ),
+        service.update({ id: TEST_DASHBOARD_ID, name: 'Updated', charts: [sampleChart] }, TEST_USER_ID),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -270,9 +258,7 @@ describe('DashboardService', () => {
       const qb = dashboardRepo.createQueryBuilder();
       qb.getExists.mockResolvedValue(false);
 
-      await expect(
-        service.share('nonexistent', ['user-1']),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.share('nonexistent', ['user-1'])).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -352,9 +338,7 @@ describe('DashboardService', () => {
 
       mockWidgetBuilderService.duplicate.mockResolvedValue(null);
 
-      await expect(
-        service.saveShared('shared-1', TEST_USER_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.saveShared('shared-1', TEST_USER_ID)).rejects.toThrow(BadRequestException);
 
       expect(mockWidgetBuilderService.cleanWidgetBuilders).toHaveBeenCalledWith([]);
     });
@@ -371,9 +355,7 @@ describe('DashboardService', () => {
         isDefault: false,
       });
 
-      await expect(
-        service.saveDefault(TEST_DASHBOARD_ID, TEST_USER_ID),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.saveDefault(TEST_DASHBOARD_ID, TEST_USER_ID)).rejects.toThrow(BadRequestException);
     });
 
     it('should duplicate a default dashboard', async () => {
@@ -413,10 +395,7 @@ describe('DashboardService', () => {
       const result = await service.favorite(TEST_DASHBOARD_ID, false);
 
       expect(result).toBe(true);
-      expect(dashboardRepo.update).toHaveBeenCalledWith(
-        { id: TEST_DASHBOARD_ID },
-        { isFavorite: true },
-      );
+      expect(dashboardRepo.update).toHaveBeenCalledWith({ id: TEST_DASHBOARD_ID }, { isFavorite: true });
     });
 
     it('should toggle favorite on shared dashboard', async () => {
@@ -426,10 +405,7 @@ describe('DashboardService', () => {
       const result = await service.favorite('shared-1', true);
 
       expect(result).toBe(false);
-      expect(sharedDashboardRepo.update).toHaveBeenCalledWith(
-        { id: 'shared-1' },
-        { isFavorite: false },
-      );
+      expect(sharedDashboardRepo.update).toHaveBeenCalledWith({ id: 'shared-1' }, { isFavorite: false });
     });
   });
 
@@ -476,9 +452,7 @@ describe('DashboardService', () => {
     it('should not throw on save failure', async () => {
       dashboardErrorRepo.save.mockRejectedValue(new Error('DB down'));
 
-      await expect(
-        service.logError(TEST_DASHBOARD_ID, TEST_WB_ID, TEST_CHART_ID, 'error'),
-      ).resolves.toBeUndefined();
+      await expect(service.logError(TEST_DASHBOARD_ID, TEST_WB_ID, TEST_CHART_ID, 'error')).resolves.toBeUndefined();
     });
   });
 
@@ -545,9 +519,7 @@ describe('DashboardService', () => {
         // checkWidgetBuilderPrivilege: usedTables
         .mockResolvedValueOnce([{ usedTables: null }]);
 
-      await expect(
-        service.hasPrivilege(TEST_DASHBOARD_ID, TEST_USER_ID),
-      ).resolves.toBeUndefined();
+      await expect(service.hasPrivilege(TEST_DASHBOARD_ID, TEST_USER_ID)).resolves.toBeUndefined();
     });
   });
 });
