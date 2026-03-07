@@ -15,17 +15,17 @@ Create all 11 TypeORM entities and DTOs for the three modules.
 
 ### Tasks
 
-- [ ] Task 1.1: Create Dashboard entities — `CoreDashboard`, `CoreDashboardWidgetBuilder` (composite PK), `CoreDashboardChart` (composite PK), `CoreDashboardError` (auto-increment int PK), `CoreSharedDashboard`
-- [ ] Task 1.2: Create RotatingDashboard entities — `CoreRotatingDashboard`, `CoreSharedRotatingDashboard`
-- [ ] Task 1.3: Create DataAnalysis entities — `CoreDataAnalysis`, `CoreDataAnalysisChart` (composite PK), `CoreDataAnalysisReport` (composite PK), `CoreSharedDataAnalysis`
-- [ ] Task 1.4: Create Dashboard DTOs — `SaveDashboardDto`, `EditDashboardDto`, `DashboardChartsDto`, `ListDashboardDto` (response), `ShareDashboardDto`, `FavoriteDto`
-- [ ] Task 1.5: Create RotatingDashboard DTOs — `SaveRotatingDashboardDto`, `UpdateRotatingDashboardDto`, `ListRotatingDashboardDto` (response)
-- [ ] Task 1.6: Create DataAnalysis DTOs — `SaveDataAnalysisDto`, `EditDataAnalysisDto`, `DataAnalysisChartsDto`, `ListDataAnalysisDto` (response), `ShareDataAnalysisDto`
+- [x] Task 1.1: Create Dashboard entities (pre-existing from Phase 1)
+- [x] Task 1.2: Create RotatingDashboard entities (pre-existing from Phase 1)
+- [x] Task 1.3: Create DataAnalysis entities (pre-existing from Phase 1)
+- [x] Task 1.4: Create Dashboard DTOs
+- [x] Task 1.5: Create RotatingDashboard DTOs
+- [x] Task 1.6: Create DataAnalysis DTOs
 
 ### Verification
 
-- [ ] `npx tsc --noEmit` clean
-- [ ] All entities match db.sql column names, types, and FK constraints
+- [x] `npx tsc --noEmit` clean
+- [x] All entities match db.sql column names, types, and FK constraints
 
 ## Phase 2: Dashboard Module
 
@@ -33,16 +33,16 @@ Scaffold module, implement service with all business logic, wire controller with
 
 ### Tasks
 
-- [ ] Task 2.1: Scaffold `DashboardModule` — module, controller, service files; register in AppModule
-- [ ] Task 2.2: Implement `DashboardService` — save (create dashboard + insert widget builder/chart join rows), update (delete old join rows, insert new), list (own + shared, privilege filtering), getById, getAnyById (open endpoint)
-- [ ] Task 2.3: Implement `DashboardService` — share, getSharedById, saveShared (duplicate dashboard + duplicate widget builders), saveDefault (copy default template), favorite toggle
-- [ ] Task 2.4: Wire `DashboardController` — 10 endpoints with PrivilegeGuard, Swagger decorators, proper DTOs
-- [ ] Task 2.5: Unit tests — DashboardService (all methods), DashboardController (all endpoints)
+- [x] Task 2.1: Scaffold `DashboardModule` — module, controller, service files; register in AppModule
+- [x] Task 2.2: Implement `DashboardService` — save (create dashboard + insert widget builder/chart join rows), update (delete old join rows, insert new), list (own + shared, privilege filtering), getById, getAnyById (open endpoint)
+- [x] Task 2.3: Implement `DashboardService` — share, getSharedById, saveShared (duplicate dashboard + duplicate widget builders), saveDefault (copy default template), favorite toggle
+- [x] Task 2.4: Wire `DashboardController` — 10 endpoints with PrivilegeGuard, Swagger decorators, proper DTOs
+- [x] Task 2.5: Unit tests — DashboardService (all methods), DashboardController (all endpoints)
 
 ### Verification
 
-- [ ] `npm run build` clean, `npm test` all pass (existing 611 + new)
-- [ ] All 10 Dashboard endpoints wired with correct DTOs and Swagger
+- [x] `npm run build` clean, `npm test` all pass (658 tests, 35 suites)
+- [x] All 10 Dashboard endpoints wired with correct DTOs and Swagger
 
 ## Phase 3: RotatingDashboard & DataAnalysis Modules
 
