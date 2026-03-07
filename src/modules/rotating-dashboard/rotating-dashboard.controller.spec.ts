@@ -36,10 +36,7 @@ describe('RotatingDashboardController', () => {
   });
 
   it('should create a rotating dashboard', async () => {
-    const result = await controller.save(
-      { name: 'New RD', dashboardIds: ['dash-1'], minutes: 5 },
-      TEST_USER_ID,
-    );
+    const result = await controller.save({ name: 'New RD', dashboardIds: ['dash-1'], minutes: 5 }, TEST_USER_ID);
     expect(result).toEqual({ id: 'new-rd-id' });
   });
 
@@ -55,7 +52,11 @@ describe('RotatingDashboardController', () => {
   });
 
   it('should update rotating dashboard', async () => {
-    await controller.update(TEST_RD_ID, { id: TEST_RD_ID, name: 'Updated', dashboardIds: [], minutes: 10 }, TEST_USER_ID);
+    await controller.update(
+      TEST_RD_ID,
+      { id: TEST_RD_ID, name: 'Updated', dashboardIds: [], minutes: 10 },
+      TEST_USER_ID,
+    );
     expect(service.update).toHaveBeenCalled();
   });
 

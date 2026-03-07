@@ -7,10 +7,7 @@ import { RotatingDashboardController } from './rotating-dashboard.controller';
 import { RotatingDashboardService } from './rotating-dashboard.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([CoreRotatingDashboard, CoreSharedRotatingDashboard]),
-    DashboardModule,
-  ],
+  imports: [TypeOrmModule.forFeature([CoreRotatingDashboard, CoreSharedRotatingDashboard]), DashboardModule],
   controllers: [RotatingDashboardController],
   providers: [RotatingDashboardService],
   exports: [RotatingDashboardService],

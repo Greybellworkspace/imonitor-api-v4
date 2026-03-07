@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { v4 } from 'uuid';
@@ -6,6 +6,7 @@ import { CoreRotatingDashboard } from '../../database/entities/core-rotating-das
 import { CoreSharedRotatingDashboard } from '../../database/entities/core-shared-rotating-dashboard.entity';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { DashboardService } from '../dashboard/dashboard.service';
 import { SaveRotatingDashboardDto } from './dto/save-rotating-dashboard.dto';
@@ -153,8 +154,36 @@ export class RotatingDashboardService {
     const privilegedTablesRaw = privilegedTableResult[0]?.privilegedTables;
     const privilegedTables: string[] = privilegedTablesRaw ? JSON.parse('[' + privilegedTablesRaw + ']') : [];
 
-    const DEFAULT_ADMIN_ID = '1';
     const response: ListRotatingDashboardDto[] = [];
+
+    // Collect all unique dashboardIds from non-shared rotating dashboards for batch query
+    const allDashboardIds = new Set<string>();
+    for (const rd of rotatingDashboards) {
+      if (rd.isShared !== true && currentUserId !== DEFAULT_ADMIN_ID) {
+        const dashboardIds: string[] = JSON.parse(rd.dashboardIds as string);
+        for (const did of dashboardIds) {
+          allDashboardIds.add(did);
+        }
+      }
+    }
+
+    // Batch fetch used tables for all dashboards (fixes N+1)
+    const dashUsedTablesMap = new Map<string, string[]>();
+    if (allDashboardIds.size > 0) {
+      const batchResult: Array<{ dashboardId: string; tableId: string }> = await this.dataSource.query(
+        `SELECT dwb.dashboardId, wbut.tableId
+         FROM core_dashboard_widget_builder dwb
+         INNER JOIN core_widget_builder_used_tables wbut ON dwb.widgetBuilderId = wbut.widgetBuilderId
+         WHERE dwb.dashboardId IN (?)`,
+        [Array.from(allDashboardIds)],
+      );
+      for (const row of batchResult) {
+        if (!dashUsedTablesMap.has(row.dashboardId)) {
+          dashUsedTablesMap.set(row.dashboardId, []);
+        }
+        dashUsedTablesMap.get(row.dashboardId)!.push(row.tableId);
+      }
+    }
 
     let index = rotatingDashboards.length;
     while (index--) {
@@ -162,24 +191,9 @@ export class RotatingDashboardService {
       const dashboardIds: string[] = JSON.parse(rd.dashboardIds as string);
       let canBeAdded = true;
 
-      for (const dashboardId of dashboardIds) {
-        if (rd.isShared !== true && currentUserId !== DEFAULT_ADMIN_ID) {
-          const usedTablesQuery = `
-            SELECT GROUP_CONCAT(CONCAT('"', tableId, '"')) AS dashTables
-            FROM core_widget_builder_used_tables
-            WHERE widgetBuilderId IN (
-              SELECT widgetBuilderId FROM core_dashboard_widget_builder WHERE dashboardId = ?
-            )`;
-
-          const dashTablesResult: Array<{ dashTables: string }> = await this.dataSource.query(usedTablesQuery, [
-            dashboardId,
-          ]);
-
-          let usedTables: string[] = dashTablesResult[0]?.dashTables
-            ? JSON.parse('[' + dashTablesResult[0].dashTables + ']')
-            : [];
-          usedTables = usedTables.length === 1 && usedTables[0] == null ? [] : usedTables;
-
+      if (rd.isShared !== true && currentUserId !== DEFAULT_ADMIN_ID) {
+        for (const dashboardId of dashboardIds) {
+          const usedTables = dashUsedTablesMap.get(dashboardId) || [];
           const hasPriv = usedTables.every((tableId) => privilegedTables.includes(tableId));
           if (!hasPriv) {
             canBeAdded = false;
@@ -189,8 +203,8 @@ export class RotatingDashboardService {
       }
 
       if (canBeAdded) {
-        delete rd.dashboardIds;
-        response.push(rd);
+        const { dashboardIds: _, ...rest } = rd;
+        response.push(rest);
       }
     }
 
@@ -212,12 +226,13 @@ export class RotatingDashboardService {
     }
 
     try {
-      const values = userIds.map((userId) => [rotatingDashboardId, userId, this.dateHelper.formatDate()]);
-      if (values.length > 0) {
-        await this.dataSource.query(
-          'INSERT INTO core_shared_rotating_dashboard (rotatingDashboardId, ownerId, createdAt) VALUES ?',
-          [values],
-        );
+      if (userIds.length > 0) {
+        const entities = userIds.map((userId) => ({
+          rotatingDashboardId,
+          ownerId: userId,
+          createdAt: new Date(),
+        }));
+        await this.sharedRotatingDashboardRepo.insert(entities);
       }
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
@@ -260,7 +275,10 @@ export class RotatingDashboardService {
         where: { id },
         select: { isFavorite: true },
       });
-      const newFav = !shared?.isFavorite;
+      if (!shared) {
+        throw new NotFoundException(ErrorMessages.ROTATING_DASHBOARD_DOES_NOT_EXIST);
+      }
+      const newFav = !shared.isFavorite;
       await this.sharedRotatingDashboardRepo.update({ id }, { isFavorite: newFav });
       return newFav;
     }
@@ -269,7 +287,10 @@ export class RotatingDashboardService {
       where: { id },
       select: { isFavorite: true },
     });
-    const newFav = !rd?.isFavorite;
+    if (!rd) {
+      throw new NotFoundException(ErrorMessages.ROTATING_DASHBOARD_DOES_NOT_EXIST);
+    }
+    const newFav = !rd.isFavorite;
     await this.rotatingDashboardRepo.update({ id }, { isFavorite: newFav });
     return newFav;
   }

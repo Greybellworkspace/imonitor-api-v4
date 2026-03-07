@@ -52,6 +52,7 @@ describe('DataAnalysisService', () => {
 
     sharedDaRepo = {
       findOne: jest.fn(),
+      insert: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
     };
 
@@ -63,8 +64,16 @@ describe('DataAnalysisService', () => {
       findOne: jest.fn(),
     };
 
+    const mockManager = {
+      save: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+      insert: jest.fn().mockResolvedValue({}),
+    };
+
     mockDataSource = {
       query: jest.fn().mockResolvedValue({}),
+      transaction: jest.fn().mockImplementation(async (cb: any) => cb(mockManager)),
     };
 
     mockReportsService = {
@@ -104,7 +113,6 @@ describe('DataAnalysisService', () => {
     it('should create a data analysis and return its ID', async () => {
       reportRepo.findOne.mockResolvedValue({ id: TEST_REPORT_ID });
       reportChartsRepo.findOne.mockResolvedValue({ id: TEST_CHART_ID });
-      mockDataSource.query.mockResolvedValue({});
 
       const result = await service.save(
         {
@@ -116,12 +124,7 @@ describe('DataAnalysisService', () => {
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
-      expect(daRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'New DA',
-          ownerId: TEST_USER_ID,
-        }),
-      );
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should throw if report does not exist', async () => {
@@ -155,7 +158,6 @@ describe('DataAnalysisService', () => {
 
     it('should skip chart validation for REPORT_TABLE_ID (tabular)', async () => {
       reportRepo.findOne.mockResolvedValue({ id: TEST_REPORT_ID });
-      mockDataSource.query.mockResolvedValue({});
 
       const result = await service.save(
         {
@@ -170,14 +172,10 @@ describe('DataAnalysisService', () => {
     });
 
     it('should skip validation for title widgets', async () => {
-      mockDataSource.query.mockResolvedValue({});
-
       const result = await service.save(
         {
           name: 'Title DA',
-          charts: [
-            { chartId: 'any', reportId: 'any', cols: 12, rows: 2, x: 0, y: 0, isTitle: true, value: 'Section' },
-          ],
+          charts: [{ chartId: 'any', reportId: 'any', cols: 12, rows: 2, x: 0, y: 0, isTitle: true, value: 'Section' }],
         },
         TEST_USER_ID,
       );
@@ -192,7 +190,6 @@ describe('DataAnalysisService', () => {
       daRepo.createQueryBuilder.mockReturnValue(createMockQueryBuilder(true));
       reportRepo.findOne.mockResolvedValue({ id: TEST_REPORT_ID });
       reportChartsRepo.findOne.mockResolvedValue({ id: TEST_CHART_ID });
-      mockDataSource.query.mockResolvedValue({});
 
       await service.update(
         {
@@ -203,21 +200,15 @@ describe('DataAnalysisService', () => {
         TEST_USER_ID,
       );
 
-      expect(daRepo.update).toHaveBeenCalledWith(
-        { id: TEST_DA_ID },
-        expect.objectContaining({ name: 'Updated DA' }),
-      );
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should throw if data analysis does not exist', async () => {
       daRepo.createQueryBuilder.mockReturnValue(createMockQueryBuilder(false));
 
-      await expect(
-        service.update(
-          { id: 'nonexistent', name: 'X', charts: [] },
-          TEST_USER_ID,
-        ),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update({ id: 'nonexistent', name: 'X', charts: [] }, TEST_USER_ID)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -261,7 +252,8 @@ describe('DataAnalysisService', () => {
           },
         ])
         .mockResolvedValueOnce([{ privilegedTables: '"table-1"' }])
-        .mockResolvedValueOnce([{ usedTables: '"table-999"' }]);
+        // Batch used tables query — returns a table the user doesn't have access to
+        .mockResolvedValueOnce([{ dataAnalysisId: TEST_DA_ID, tableId: 'table-999' }]);
 
       const result = await service.list(TEST_USER_ID);
 
@@ -295,13 +287,14 @@ describe('DataAnalysisService', () => {
   describe('share', () => {
     it('should share data analysis with users', async () => {
       daRepo.createQueryBuilder.mockReturnValue(createMockQueryBuilder(true));
-      mockDataSource.query.mockResolvedValue({});
 
       await service.share(TEST_DA_ID, ['user-2', 'user-3']);
 
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO core_shared_data_analysis'),
-        expect.any(Array),
+      expect(sharedDaRepo.insert).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ dataAnalysisId: TEST_DA_ID, ownerId: 'user-2' }),
+          expect.objectContaining({ dataAnalysisId: TEST_DA_ID, ownerId: 'user-3' }),
+        ]),
       );
     });
 
@@ -376,10 +369,10 @@ describe('DataAnalysisService', () => {
         ])
         // Mock privilege check queries
         .mockResolvedValueOnce([{ privilegedTables: '"table-1"' }])
-        .mockResolvedValueOnce([{ dataAnalysisId: TEST_DA_ID }])
-        .mockResolvedValueOnce([{ usedTables: '"table-1"' }])
-        // Mock addDataAnalysisToDb bulk inserts
-        .mockResolvedValue({});
+        .mockResolvedValueOnce([{ usedTables: '"table-1"' }]);
+
+      // checkUsedTablesPrivilege shared record lookup via TypeORM
+      sharedDaRepo.findOne.mockResolvedValue({ dataAnalysisId: TEST_DA_ID });
 
       mockReportsService.duplicate.mockResolvedValue({
         reportId: 'dup-report-1',
@@ -390,6 +383,7 @@ describe('DataAnalysisService', () => {
 
       expect(result).toBeDefined();
       expect(mockReportsService.duplicate).toHaveBeenCalledWith(TEST_REPORT_ID, TEST_USER_ID);
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should rollback duplicated reports if report not found', async () => {
@@ -399,9 +393,7 @@ describe('DataAnalysisService', () => {
           dataAnalysisId: TEST_DA_ID,
           ownerId: TEST_USER_ID,
           name: 'Shared DA',
-          options: JSON.stringify([
-            { chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 },
-          ]),
+          options: JSON.stringify([{ chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 }]),
           isDefault: false,
         },
       ]);
@@ -418,9 +410,7 @@ describe('DataAnalysisService', () => {
       daRepo.findOne.mockResolvedValue({
         name: 'Default DA',
         ownerId: 'admin',
-        options: JSON.stringify([
-          { chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 },
-        ]),
+        options: JSON.stringify([{ chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 }]),
         isDefault: true,
       });
 
@@ -429,16 +419,16 @@ describe('DataAnalysisService', () => {
         charts: { [TEST_CHART_ID]: 'dup-chart-1' },
       });
 
-      // Privilege check + bulk inserts
+      // Privilege check
       mockDataSource.query
         .mockResolvedValueOnce([{ privilegedTables: '"table-1"' }])
-        .mockResolvedValueOnce([{ usedTables: '"table-1"' }])
-        .mockResolvedValue({});
+        .mockResolvedValueOnce([{ usedTables: '"table-1"' }]);
 
       const result = await service.saveDefault(TEST_DA_ID, TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(mockReportsService.duplicate).toHaveBeenCalled();
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should throw if data analysis is not default', async () => {
@@ -460,9 +450,7 @@ describe('DataAnalysisService', () => {
       daRepo.findOne.mockResolvedValue({
         name: 'Export DA',
         ownerId: TEST_USER_ID,
-        options: JSON.stringify([
-          { chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 },
-        ]),
+        options: JSON.stringify([{ chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 }]),
         isDefault: false,
       });
 
@@ -479,9 +467,7 @@ describe('DataAnalysisService', () => {
       daRepo.findOne.mockResolvedValue({
         name: 'Export DA',
         ownerId: TEST_USER_ID,
-        options: JSON.stringify([
-          { chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 },
-        ]),
+        options: JSON.stringify([{ chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 }]),
         isDefault: false,
       });
 
@@ -498,20 +484,11 @@ describe('DataAnalysisService', () => {
       daRepo.findOne.mockResolvedValue({
         name: 'Export DA',
         ownerId: TEST_USER_ID,
-        options: JSON.stringify([
-          { chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 },
-        ]),
+        options: JSON.stringify([{ chartId: TEST_CHART_ID, reportId: TEST_REPORT_ID, cols: 6, rows: 4, x: 0, y: 0 }]),
         isDefault: false,
       });
 
-      const result = await service.exportExcel(
-        TEST_DA_ID,
-        'saved',
-        '2026-01-01',
-        '2026-03-01',
-        'daily',
-        TEST_USER_ID,
-      );
+      const result = await service.exportExcel(TEST_DA_ID, 'saved', '2026-01-01', '2026-03-01', 'daily', TEST_USER_ID);
 
       expect(result).toBe('/tmp/export.xlsx');
       expect(mockReportsService.generateChartByType).toHaveBeenCalled();

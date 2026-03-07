@@ -15,6 +15,7 @@ import { CoreApplicationUsers } from '../../database/entities/core-application-u
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { FETCH_WIDGETCHART_DB_FUNCTION, FETCH_CHART_DB_FUNCTION } from '../reports/constants';
 import { ChartTypes, ChartStatus } from '../reports/enums';
@@ -63,9 +64,6 @@ const TABLE_TYPE_STATISTICS = 'statistics';
 
 /** Ref table key matching v3 REF_TABLE_KEY */
 const REF_TABLE_KEY = 'refTable';
-
-/** Default admin userId matching v3 DEFAULT_ADMIN_ID */
-const DEFAULT_ADMIN_ID = '0';
 
 /**
  * Safely parse a JSON string, returning null if input is null/undefined or malformed.

@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { v4 } from 'uuid';
 import { CoreDashboard } from '../../database/entities/core-dashboard.entity';
 import { CoreDashboardWidgetBuilder } from '../../database/entities/core-dashboard-widget-builder.entity';
@@ -11,6 +11,7 @@ import { CoreWidgetBuilder } from '../../database/entities/core-widget-builder.e
 import { CoreWidgetBuilderCharts } from '../../database/entities/core-widget-builder-charts.entity';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { WidgetBuilderService } from '../widget-builder/widget-builder.service';
 import { SaveDashboardDto } from './dto/save-dashboard.dto';
@@ -134,21 +135,24 @@ export class DashboardService {
     }
 
     try {
-      await this.dashboardRepo.update(
-        { id: dto.id },
-        {
-          ownerId: currentUserId,
-          name: dto.name,
-          options: JSON.stringify(dto.charts),
-          updatedAt: new Date(),
-        },
-      );
+      await this.dataSource.transaction(async (manager) => {
+        await manager.update(
+          CoreDashboard,
+          { id: dto.id },
+          {
+            ownerId: currentUserId,
+            name: dto.name,
+            options: JSON.stringify(dto.charts),
+            updatedAt: new Date(),
+          },
+        );
 
-      // Delete old associations, re-insert new ones
-      await this.dataSource.query('DELETE FROM core_dashboard_widget_builder WHERE dashboardId = ?', [dto.id]);
-      await this.dataSource.query('DELETE FROM core_dashboard_chart WHERE dashboardId = ?', [dto.id]);
+        // Delete old associations, re-insert new ones
+        await manager.delete(CoreDashboardWidgetBuilder, { dashboardId: dto.id });
+        await manager.delete(CoreDashboardChart, { dashboardId: dto.id });
 
-      await this.bulkInsertWbAndCharts(dto.id, widgetBuilderIds, chartIds);
+        await this.bulkInsertWbAndCharts(manager, dto.id, widgetBuilderIds, chartIds);
+      });
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
     }
@@ -209,8 +213,28 @@ export class DashboardService {
     const privilegedTablesRaw = privilegedTableResult[0]?.privilegedTables;
     const privilegedTables: string[] = privilegedTablesRaw ? JSON.parse('[' + privilegedTablesRaw + ']') : [];
 
-    const DEFAULT_ADMIN_ID = '1';
     const response: ListDashboardDto[] = [];
+
+    // Collect non-shared dashboard IDs for batch privilege check
+    const nonSharedIds = dashboards.filter((d) => !d.isShared && currentUserId !== DEFAULT_ADMIN_ID).map((d) => d.id);
+
+    // Batch fetch used tables for all non-shared dashboards (fixes N+1)
+    const usedTablesMap = new Map<string, string[]>();
+    if (nonSharedIds.length > 0) {
+      const batchResult: Array<{ dashboardId: string; tableId: string }> = await this.dataSource.query(
+        `SELECT dwb.dashboardId, wbut.tableId
+         FROM core_dashboard_widget_builder dwb
+         INNER JOIN core_widget_builder_used_tables wbut ON dwb.widgetBuilderId = wbut.widgetBuilderId
+         WHERE dwb.dashboardId IN (?)`,
+        [nonSharedIds],
+      );
+      for (const row of batchResult) {
+        if (!usedTablesMap.has(row.dashboardId)) {
+          usedTablesMap.set(row.dashboardId, []);
+        }
+        usedTablesMap.get(row.dashboardId)!.push(row.tableId);
+      }
+    }
 
     let index = dashboards.length;
     while (index--) {
@@ -221,23 +245,7 @@ export class DashboardService {
         continue;
       }
 
-      // Check privilege on widget builder used tables
-      const usedTablesQuery = `
-        SELECT GROUP_CONCAT(CONCAT('"', tableId, '"')) AS usedTables
-        FROM core_widget_builder_used_tables
-        WHERE widgetBuilderId IN (
-          SELECT widgetBuilderId FROM core_dashboard_widget_builder WHERE dashboardId = ?
-        )`;
-
-      const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(usedTablesQuery, [
-        dashboard.id,
-      ]);
-
-      let usedTables: string[] = usedTablesResult[0]?.usedTables
-        ? JSON.parse('[' + usedTablesResult[0].usedTables + ']')
-        : [];
-      usedTables = usedTables.length === 1 && usedTables[0] == null ? [] : usedTables;
-
+      const usedTables = usedTablesMap.get(dashboard.id) || [];
       const hasPriv = usedTables.every((tableId) => privilegedTables.includes(tableId));
       if (hasPriv) {
         response.push(dashboard);
@@ -303,11 +311,13 @@ export class DashboardService {
     }
 
     try {
-      const values = userIds.map((userId) => [dashboardId, userId, this.dateHelper.formatDate()]);
-      if (values.length > 0) {
-        await this.dataSource.query('INSERT INTO core_shared_dashboard (dashboardId, ownerId, createdAt) VALUES ?', [
-          values,
-        ]);
+      if (userIds.length > 0) {
+        const entities = userIds.map((userId) => ({
+          dashboardId,
+          ownerId: userId,
+          createdAt: new Date(),
+        }));
+        await this.sharedDashboardRepo.insert(entities);
       }
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
@@ -487,7 +497,10 @@ export class DashboardService {
         where: { id },
         select: { isFavorite: true },
       });
-      const newFav = !shared?.isFavorite;
+      if (!shared) {
+        throw new NotFoundException(ErrorMessages.SHARED_DAHBOARD_DOES_NOT_EXIST);
+      }
+      const newFav = !shared.isFavorite;
       await this.sharedDashboardRepo.update({ id }, { isFavorite: newFav });
       return newFav;
     }
@@ -496,7 +509,10 @@ export class DashboardService {
       where: { id },
       select: { isFavorite: true },
     });
-    const newFav = !dashboard?.isFavorite;
+    if (!dashboard) {
+      throw new NotFoundException(ErrorMessages.DASHBOARD_DOES_NOT_EXIST);
+    }
+    const newFav = !dashboard.isFavorite;
     await this.dashboardRepo.update({ id }, { isFavorite: newFav });
     return newFav;
   }
@@ -505,12 +521,12 @@ export class DashboardService {
    * Check if user has privilege on all widget builders in a dashboard.
    */
   async hasPrivilege(dashboardId: string, userId: string): Promise<void> {
-    const wbQuery = `
-      SELECT widgetBuilderId AS id
-      FROM core_dashboard_widget_builder WHERE dashboardId = ?`;
-    const wbs: Array<{ id: string }> = await this.dataSource.query(wbQuery, [dashboardId]);
+    const wbs = await this.dashboardWbRepo.find({
+      where: { dashboardId },
+      select: { widgetBuilderId: true },
+    });
     for (const wb of wbs) {
-      await this.checkWidgetBuilderPrivilege(wb.id, userId);
+      await this.checkWidgetBuilderPrivilege(wb.widgetBuilderId, userId);
     }
   }
 
@@ -598,35 +614,42 @@ export class DashboardService {
     chartIds: Set<string>,
   ): Promise<void> {
     try {
-      await this.dashboardRepo.save({
-        id,
-        ownerId: userId,
-        name,
-        createdAt: new Date(),
-        options: JSON.stringify(charts),
-      });
+      await this.dataSource.transaction(async (manager) => {
+        await manager.save(CoreDashboard, {
+          id,
+          ownerId: userId,
+          name,
+          createdAt: new Date(),
+          options: JSON.stringify(charts),
+        });
 
-      await this.bulkInsertWbAndCharts(id, widgetBuilderIds, chartIds);
+        await this.bulkInsertWbAndCharts(manager, id, widgetBuilderIds, chartIds);
+      });
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SAVE);
     }
   }
 
   private async bulkInsertWbAndCharts(
+    manager: EntityManager,
     dashboardId: string,
     widgetBuilderIds: Set<string>,
     chartIds: Set<string>,
   ): Promise<void> {
     if (widgetBuilderIds.size > 0) {
-      const wbValues = Array.from(widgetBuilderIds).map((wbId) => [dashboardId, wbId]);
-      await this.dataSource.query('INSERT INTO core_dashboard_widget_builder (dashboardId, widgetBuilderId) VALUES ?', [
-        wbValues,
-      ]);
+      const wbEntities = Array.from(widgetBuilderIds).map((wbId) => ({
+        dashboardId,
+        widgetBuilderId: wbId,
+      }));
+      await manager.insert(CoreDashboardWidgetBuilder, wbEntities);
     }
 
     if (chartIds.size > 0) {
-      const chartValues = Array.from(chartIds).map((cId) => [dashboardId, cId]);
-      await this.dataSource.query('INSERT INTO core_dashboard_chart (dashboardId, chartId) VALUES ?', [chartValues]);
+      const chartEntities = Array.from(chartIds).map((cId) => ({
+        dashboardId,
+        chartId: cId,
+      }));
+      await manager.insert(CoreDashboardChart, chartEntities);
     }
   }
 }

@@ -32,8 +32,18 @@ function createMockRepo() {
   };
 }
 
+const mockManager = {
+  save: jest.fn().mockResolvedValue({}),
+  update: jest.fn().mockResolvedValue({}),
+  delete: jest.fn().mockResolvedValue({}),
+  insert: jest.fn().mockResolvedValue({}),
+};
+
 const mockDataSource = {
   query: jest.fn(),
+  transaction: jest
+    .fn()
+    .mockImplementation(async (cb: (manager: typeof mockManager) => Promise<void>) => cb(mockManager)),
 };
 
 const mockDateHelper = {
@@ -122,19 +132,15 @@ describe('DashboardService', () => {
       wbChartsRepo.findOne.mockResolvedValue({ id: TEST_CHART_ID });
       // checkWidgetBuilderPrivilege: no used tables
       mockDataSource.query.mockResolvedValue([{ usedTables: null }]);
-      dashboardRepo.save.mockResolvedValue({});
 
       const result = await service.save({ name: 'Test Dashboard', charts: [sampleChart] }, TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
-      expect(dashboardRepo.save).toHaveBeenCalled();
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should skip title widgets when validating', async () => {
-      dashboardRepo.save.mockResolvedValue({});
-      mockDataSource.query.mockResolvedValue([]);
-
       const result = await service.save({ name: 'Title Only', charts: [titleChart as any] }, TEST_USER_ID);
 
       expect(result).toBeDefined();
@@ -169,11 +175,10 @@ describe('DashboardService', () => {
       widgetBuilderRepo.findOne.mockResolvedValue({ id: TEST_WB_ID });
       wbChartsRepo.findOne.mockResolvedValue({ id: TEST_CHART_ID });
       mockDataSource.query.mockResolvedValue([{ usedTables: null }]);
-      dashboardRepo.update.mockResolvedValue({});
 
       await service.update({ id: TEST_DASHBOARD_ID, name: 'Updated', charts: [sampleChart] }, TEST_USER_ID);
 
-      expect(dashboardRepo.update).toHaveBeenCalled();
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should throw if dashboard does not exist', async () => {
@@ -243,13 +248,14 @@ describe('DashboardService', () => {
     it('should share dashboard with users', async () => {
       const qb = dashboardRepo.createQueryBuilder();
       qb.getExists.mockResolvedValue(true);
-      mockDataSource.query.mockResolvedValue({});
 
       await service.share(TEST_DASHBOARD_ID, ['user-1', 'user-2']);
 
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO core_shared_dashboard'),
-        expect.any(Array),
+      expect(sharedDashboardRepo.insert).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ dashboardId: TEST_DASHBOARD_ID, ownerId: 'user-1' }),
+          expect.objectContaining({ dashboardId: TEST_DASHBOARD_ID, ownerId: 'user-2' }),
+        ]),
       );
     });
 
@@ -313,14 +319,12 @@ describe('DashboardService', () => {
       });
 
       wbChartsRepo.findOne.mockResolvedValue({ id: 'new-chart-id' });
-      dashboardRepo.save.mockResolvedValue({});
-      // bulkInsertWbAndCharts queries
-      mockDataSource.query.mockResolvedValue({});
 
       const result = await service.saveShared('shared-1', TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(mockWidgetBuilderService.duplicate).toHaveBeenCalledWith(TEST_WB_ID, TEST_USER_ID);
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
 
     it('should clean up widget builders if duplicate returns null', async () => {
@@ -374,13 +378,12 @@ describe('DashboardService', () => {
       mockDataSource.query.mockResolvedValueOnce([{ usedTables: null }]);
 
       wbChartsRepo.findOne.mockResolvedValue({ id: 'new-chart-id' });
-      dashboardRepo.save.mockResolvedValue({});
-      mockDataSource.query.mockResolvedValue({});
 
       const result = await service.saveDefault(TEST_DASHBOARD_ID, TEST_USER_ID);
 
       expect(result).toBeDefined();
       expect(mockWidgetBuilderService.duplicate).toHaveBeenCalledWith(TEST_WB_ID, TEST_USER_ID);
+      expect(mockDataSource.transaction).toHaveBeenCalled();
     });
   });
 
@@ -476,8 +479,8 @@ describe('DashboardService', () => {
         ])
         // Privileged tables query
         .mockResolvedValueOnce([{ privilegedTables: '"table-1","table-2"' }])
-        // Used tables query
-        .mockResolvedValueOnce([{ usedTables: '"table-1"' }]);
+        // Batch used tables query (returns individual rows)
+        .mockResolvedValueOnce([{ dashboardId: TEST_DASHBOARD_ID, tableId: 'table-1' }]);
 
       const result = await service.list(TEST_USER_ID);
 
@@ -512,11 +515,10 @@ describe('DashboardService', () => {
 
   describe('hasPrivilege()', () => {
     it('should check privilege on all widget builders', async () => {
-      // Widget builder IDs query
-      mockDataSource.query
-        .mockResolvedValueOnce([{ id: TEST_WB_ID }])
-        // checkWidgetBuilderPrivilege: usedTables
-        .mockResolvedValueOnce([{ usedTables: null }]);
+      // dashboardWbRepo.find returns WB associations
+      dashboardWbRepo.find.mockResolvedValue([{ widgetBuilderId: TEST_WB_ID }]);
+      // checkWidgetBuilderPrivilege: usedTables
+      mockDataSource.query.mockResolvedValueOnce([{ usedTables: null }]);
 
       await expect(service.hasPrivilege(TEST_DASHBOARD_ID, TEST_USER_ID)).resolves.toBeUndefined();
     });

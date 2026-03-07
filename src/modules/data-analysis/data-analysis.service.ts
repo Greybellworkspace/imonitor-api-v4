@@ -1,6 +1,6 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import { v4 } from 'uuid';
 import { CoreDataAnalysis } from '../../database/entities/core-data-analysis.entity';
 import { CoreDataAnalysisChart } from '../../database/entities/core-data-analysis-chart.entity';
@@ -11,6 +11,7 @@ import { CoreReportCharts } from '../../database/entities/core-report-charts.ent
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { ExportHelperService } from '../../shared/services/export-helper.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import { DEFAULT_ADMIN_ID } from '../../shared/constants/auth.constants';
 import { AvailableRoles } from '../../shared/enums/roles.enum';
 import { ReportsService } from '../reports/reports.service';
 import { REPORT_TABLE_ID } from '../reports/constants';
@@ -92,21 +93,24 @@ export class DataAnalysisService {
     await this.validateCharts(dto.charts, reportIds, chartIds);
 
     try {
-      await this.dataAnalysisRepo.update(
-        { id: dto.id },
-        {
-          ownerId: userId,
-          name: dto.name,
-          options: JSON.stringify(dto.charts),
-          updatedAt: new Date(),
-        },
-      );
+      await this.dataSource.transaction(async (manager) => {
+        await manager.update(
+          CoreDataAnalysis,
+          { id: dto.id },
+          {
+            ownerId: userId,
+            name: dto.name,
+            options: JSON.stringify(dto.charts),
+            updatedAt: new Date(),
+          },
+        );
 
-      // Delete old associations, re-insert new ones
-      await this.dataSource.query('DELETE FROM core_data_analysis_report WHERE dataAnalysisId = ?', [dto.id]);
-      await this.dataSource.query('DELETE FROM core_data_analysis_chart WHERE dataAnalysisId = ?', [dto.id]);
+        // Delete old associations, re-insert new ones
+        await manager.delete(CoreDataAnalysisReport, { dataAnalysisId: dto.id });
+        await manager.delete(CoreDataAnalysisChart, { dataAnalysisId: dto.id });
 
-      await this.bulkInsertReportsAndCharts(dto.id, reportIds, chartIds);
+        await this.bulkInsertReportsAndCharts(manager, dto.id, reportIds, chartIds);
+      });
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_UPDATE);
     }
@@ -166,8 +170,30 @@ export class DataAnalysisService {
     const privilegedTablesRaw = privilegedTableResult[0]?.privilegedTables;
     const privilegedTables: string[] = privilegedTablesRaw ? JSON.parse('[' + privilegedTablesRaw + ']') : [];
 
-    const DEFAULT_ADMIN_ID = '1';
     const response: ListDataAnalysisDto[] = [];
+
+    // Collect non-shared DA IDs for batch privilege check
+    const nonSharedIds = dataAnalyses
+      .filter((da) => !da.isShared && currentUserId !== DEFAULT_ADMIN_ID)
+      .map((da) => da.id);
+
+    // Batch fetch used tables for all non-shared data analyses (fixes N+1)
+    const usedTablesMap = new Map<string, string[]>();
+    if (nonSharedIds.length > 0) {
+      const batchResult: Array<{ dataAnalysisId: string; tableId: string }> = await this.dataSource.query(
+        `SELECT dar.dataAnalysisId, rut.tableId
+         FROM core_data_analysis_report dar
+         INNER JOIN core_report_used_table rut ON dar.reportId = rut.reportId
+         WHERE dar.dataAnalysisId IN (?)`,
+        [nonSharedIds],
+      );
+      for (const row of batchResult) {
+        if (!usedTablesMap.has(row.dataAnalysisId)) {
+          usedTablesMap.set(row.dataAnalysisId, []);
+        }
+        usedTablesMap.get(row.dataAnalysisId)!.push(row.tableId);
+      }
+    }
 
     let index = dataAnalyses.length;
     while (index--) {
@@ -178,21 +204,7 @@ export class DataAnalysisService {
         continue;
       }
 
-      // Check privilege via report used tables
-      const usedTablesQuery = `
-        SELECT GROUP_CONCAT(CONCAT('"', tableId, '"')) AS usedTables
-        FROM core_report_used_table
-        WHERE reportId IN (
-          SELECT reportId FROM core_data_analysis_report WHERE dataAnalysisId = ?
-        )`;
-
-      const usedTablesResult: Array<{ usedTables: string }> = await this.dataSource.query(usedTablesQuery, [da.id]);
-
-      let usedTables: string[] = usedTablesResult[0]?.usedTables
-        ? JSON.parse('[' + usedTablesResult[0].usedTables + ']')
-        : [];
-      usedTables = usedTables.length === 1 && usedTables[0] == null ? [] : usedTables;
-
+      const usedTables = usedTablesMap.get(da.id) || [];
       const hasPriv = usedTables.every((tableId) => privilegedTables.includes(tableId));
       if (hasPriv) {
         response.push(da);
@@ -232,12 +244,13 @@ export class DataAnalysisService {
     }
 
     try {
-      const values = userIds.map((userId) => [dataAnalysisId, userId, this.dateHelper.formatDate()]);
-      if (values.length > 0) {
-        await this.dataSource.query(
-          'INSERT INTO core_shared_data_analysis (dataAnalysisId, ownerId, createdAt) VALUES ?',
-          [values],
-        );
+      if (userIds.length > 0) {
+        const entities = userIds.map((userId) => ({
+          dataAnalysisId,
+          ownerId: userId,
+          createdAt: new Date(),
+        }));
+        await this.sharedDaRepo.insert(entities);
       }
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SHARE);
@@ -273,13 +286,19 @@ export class DataAnalysisService {
   async favorite(id: string, isShared: boolean): Promise<boolean> {
     if (isShared) {
       const shared = await this.sharedDaRepo.findOne({ where: { id }, select: { isFavorite: true } });
-      const newFav = !shared?.isFavorite;
+      if (!shared) {
+        throw new NotFoundException(ErrorMessages.SHARED_DATA_ANALYSIS_DOES_NOT_EXIST);
+      }
+      const newFav = !shared.isFavorite;
       await this.sharedDaRepo.update({ id }, { isFavorite: newFav });
       return newFav;
     }
 
     const da = await this.dataAnalysisRepo.findOne({ where: { id }, select: { isFavorite: true } });
-    const newFav = !da?.isFavorite;
+    if (!da) {
+      throw new NotFoundException(ErrorMessages.DATA_ANALYSIS_DOES_NOT_EXIST);
+    }
+    const newFav = !da.isFavorite;
     await this.dataAnalysisRepo.update({ id }, { isFavorite: newFav });
     return newFav;
   }
@@ -573,37 +592,42 @@ export class DataAnalysisService {
     chartIds: Set<string>,
   ): Promise<void> {
     try {
-      await this.dataAnalysisRepo.save({
-        id,
-        name,
-        ownerId: userId,
-        createdAt: new Date(),
-        options: JSON.stringify(charts),
-      });
+      await this.dataSource.transaction(async (manager) => {
+        await manager.save(CoreDataAnalysis, {
+          id,
+          name,
+          ownerId: userId,
+          createdAt: new Date(),
+          options: JSON.stringify(charts),
+        });
 
-      await this.bulkInsertReportsAndCharts(id, reportIds, chartIds);
+        await this.bulkInsertReportsAndCharts(manager, id, reportIds, chartIds);
+      });
     } catch (_error) {
       throw new BadRequestException(ErrorMessages.ERROR_SAVE);
     }
   }
 
   private async bulkInsertReportsAndCharts(
+    manager: EntityManager,
     dataAnalysisId: string,
     reportIds: Set<string>,
     chartIds: Set<string>,
   ): Promise<void> {
     if (reportIds.size > 0) {
-      const reportValues = Array.from(reportIds).map((rId) => [dataAnalysisId, rId]);
-      await this.dataSource.query('INSERT INTO core_data_analysis_report (dataAnalysisId, reportId) VALUES ?', [
-        reportValues,
-      ]);
+      const reportEntities = Array.from(reportIds).map((rId) => ({
+        dataAnalysisId,
+        reportId: rId,
+      }));
+      await manager.insert(CoreDataAnalysisReport, reportEntities);
     }
 
     if (chartIds.size > 0) {
-      const chartValues = Array.from(chartIds).map((cId) => [dataAnalysisId, cId]);
-      await this.dataSource.query('INSERT INTO core_data_analysis_chart (dataAnalysisId, chartId) VALUES ?', [
-        chartValues,
-      ]);
+      const chartEntities = Array.from(chartIds).map((cId) => ({
+        dataAnalysisId,
+        chartId: cId,
+      }));
+      await manager.insert(CoreDataAnalysisChart, chartEntities);
     }
   }
 
@@ -644,12 +668,12 @@ export class DataAnalysisService {
     // Get the original DA's ID (for shared, lookup via shared table; for direct, use sourceId)
     let originalDaId = sourceId;
     if (isShared) {
-      const sharedRecord: Array<{ dataAnalysisId: string }> = await this.dataSource.query(
-        'SELECT dataAnalysisId FROM core_shared_data_analysis WHERE id = ?',
-        [sourceId],
-      );
-      if (sharedRecord.length > 0) {
-        originalDaId = sharedRecord[0].dataAnalysisId;
+      const sharedRecord = await this.sharedDaRepo.findOne({
+        where: { id: sourceId },
+        select: { dataAnalysisId: true },
+      });
+      if (sharedRecord) {
+        originalDaId = sharedRecord.dataAnalysisId;
       }
     }
 

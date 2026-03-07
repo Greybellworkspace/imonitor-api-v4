@@ -40,6 +40,7 @@ describe('RotatingDashboardService', () => {
 
     sharedRdRepo = {
       findOne: jest.fn(),
+      insert: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
     };
 
@@ -136,10 +137,7 @@ describe('RotatingDashboardService', () => {
     it('should check privilege for non-shared dashboards', async () => {
       mockDashboardService.isSharedDashboard.mockResolvedValue(false);
 
-      await service.save(
-        { name: 'New RD', dashboardIds: [TEST_DASHBOARD_ID_1], minutes: 5 },
-        TEST_USER_ID,
-      );
+      await service.save({ name: 'New RD', dashboardIds: [TEST_DASHBOARD_ID_1], minutes: 5 }, TEST_USER_ID);
 
       expect(mockDashboardService.hasPrivilege).toHaveBeenCalledWith(TEST_DASHBOARD_ID_1, TEST_USER_ID);
     });
@@ -147,10 +145,7 @@ describe('RotatingDashboardService', () => {
     it('should skip privilege check for shared dashboards', async () => {
       mockDashboardService.isSharedDashboard.mockResolvedValue(true);
 
-      await service.save(
-        { name: 'New RD', dashboardIds: [TEST_DASHBOARD_ID_1], minutes: 5 },
-        TEST_USER_ID,
-      );
+      await service.save({ name: 'New RD', dashboardIds: [TEST_DASHBOARD_ID_1], minutes: 5 }, TEST_USER_ID);
 
       expect(mockDashboardService.hasPrivilege).not.toHaveBeenCalled();
     });
@@ -194,13 +189,14 @@ describe('RotatingDashboardService', () => {
         isFavorite: false,
       });
       mockDashboardService.isSharedDashboard.mockResolvedValue(false);
-      mockDataSource.query.mockResolvedValue({});
 
       await service.share(TEST_RD_ID, ['user-2', 'user-3']);
 
-      expect(mockDataSource.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO core_shared_rotating_dashboard'),
-        expect.any(Array),
+      expect(sharedRdRepo.insert).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ rotatingDashboardId: TEST_RD_ID, ownerId: 'user-2' }),
+          expect.objectContaining({ rotatingDashboardId: TEST_RD_ID, ownerId: 'user-3' }),
+        ]),
       );
     });
 
@@ -317,10 +313,7 @@ describe('RotatingDashboardService', () => {
       rdRepo.createQueryBuilder.mockReturnValue(createMockQueryBuilder(false));
 
       await expect(
-        service.update(
-          { id: 'nonexistent', name: 'X', dashboardIds: [], minutes: 1 },
-          TEST_USER_ID,
-        ),
+        service.update({ id: 'nonexistent', name: 'X', dashboardIds: [], minutes: 1 }, TEST_USER_ID),
       ).rejects.toThrow(BadRequestException);
     });
   });

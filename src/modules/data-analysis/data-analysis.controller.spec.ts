@@ -47,11 +47,7 @@ describe('DataAnalysisController', () => {
   });
 
   it('should update a data analysis', async () => {
-    await controller.update(
-      TEST_DA_ID,
-      { id: TEST_DA_ID, name: 'Updated', charts: [] },
-      TEST_USER_ID,
-    );
+    await controller.update(TEST_DA_ID, { id: TEST_DA_ID, name: 'Updated', charts: [] }, TEST_USER_ID);
     expect(service.update).toHaveBeenCalled();
   });
 
