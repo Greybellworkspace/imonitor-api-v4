@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 847 tests, 44 suites
+npm test               # Jest unit tests — 852 tests, 44 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```

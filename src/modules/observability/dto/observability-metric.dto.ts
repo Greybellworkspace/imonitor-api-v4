@@ -348,7 +348,7 @@ export class ObservabilityGoToReportDto {
 }
 
 export class ModuleNodeDto {
-  id: number;
+  id: string;
   name: string;
 }
 

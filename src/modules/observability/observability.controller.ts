@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+  ParseEnumPipe,
+  ParseArrayPipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -46,7 +57,7 @@ export class ObservabilityController {
   @Post('metrics/nodes/fields')
   @ApiOperation({ summary: 'Fetch statistics table fields by node IDs' })
   @ApiResponse({ status: 200, description: 'Side tables with fields' })
-  async fetchFieldsByNode(@Body() ids: number[]) {
+  async fetchFieldsByNode(@Body(new ParseArrayPipe({ items: Number })) ids: number[]) {
     return this.observabilityService.fetchFieldsByNode(ids);
   }
 
@@ -71,14 +82,14 @@ export class ObservabilityController {
   @Get('metrics/reports/:id')
   @ApiOperation({ summary: 'Convert metric to report configuration' })
   @ApiResponse({ status: 200, description: 'Report-compatible configuration' })
-  async goToReport(@Param('id') id: string) {
+  async goToReport(@Param('id', ParseUUIDPipe) id: string) {
     return this.observabilityService.goToReport(id);
   }
 
   @Get('metrics/:id')
   @ApiOperation({ summary: 'Get metric by ID with full configuration' })
   @ApiResponse({ status: 200, description: 'Metric details with thresholds and alarms' })
-  async getMetricById(@Param('id') id: string) {
+  async getMetricById(@Param('id', ParseUUIDPipe) id: string) {
     return this.observabilityService.getMetricById(id);
   }
 
@@ -94,7 +105,7 @@ export class ObservabilityController {
   @ApiOperation({ summary: 'Update an existing observability metric' })
   @ApiResponse({ status: 200, description: 'Metric updated' })
   async updateMetric(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateObservabilityMetricDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -105,7 +116,7 @@ export class ObservabilityController {
   @Put('favorite/:id')
   @ApiOperation({ summary: 'Toggle metric favorite' })
   @ApiResponse({ status: 200, description: 'New favorite status' })
-  async favorite(@Param('id') id: string, @Body() body: FavoriteDto) {
+  async favorite(@Param('id', ParseUUIDPipe) id: string, @Body() body: FavoriteDto) {
     return this.observabilityService.favorite(id);
   }
 
@@ -134,7 +145,7 @@ export class ObservabilityController {
   @Get('charts/metrics/:filter')
   @ApiOperation({ summary: 'List metrics filtered for chart selection' })
   @ApiResponse({ status: 200, description: 'Filtered metrics array' })
-  async listChartsMetric(@Param('filter') filter: MetricChartFilters) {
+  async listChartsMetric(@Param('filter', new ParseEnumPipe(MetricChartFilters)) filter: MetricChartFilters) {
     return this.observabilityService.listMetricsForCharts(filter);
   }
 
@@ -148,7 +159,7 @@ export class ObservabilityController {
   @Get('charts/:id')
   @ApiOperation({ summary: 'Get chart by ID' })
   @ApiResponse({ status: 200, description: 'Chart details with parsed data' })
-  async getChartById(@Param('id') id: string) {
+  async getChartById(@Param('id', ParseUUIDPipe) id: string) {
     return this.observabilityService.getChartById(id);
   }
 
@@ -163,7 +174,7 @@ export class ObservabilityController {
   @ApiOperation({ summary: 'Update an existing observability chart' })
   @ApiResponse({ status: 200, description: 'Chart updated' })
   async updateChart(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateObservabilityChartDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -174,7 +185,7 @@ export class ObservabilityController {
   @Put('charts/favorite/:id')
   @ApiOperation({ summary: 'Toggle chart favorite' })
   @ApiResponse({ status: 200, description: 'New favorite status' })
-  async favoriteChart(@Param('id') id: string, @Body() body: FavoriteDto) {
+  async favoriteChart(@Param('id', ParseUUIDPipe) id: string, @Body() body: FavoriteDto) {
     return this.observabilityService.favoriteChart(id);
   }
 
@@ -259,7 +270,7 @@ export class ObservabilityController {
   @Get('dashboards/:id')
   @ApiOperation({ summary: 'Get dashboard by ID with chart layout' })
   @ApiResponse({ status: 200, description: 'Dashboard details with charts' })
-  async getDashboardById(@Param('id') id: string) {
+  async getDashboardById(@Param('id', ParseUUIDPipe) id: string) {
     return this.observabilityService.getDashboardById(id);
   }
 
@@ -267,7 +278,7 @@ export class ObservabilityController {
   @ApiOperation({ summary: 'Update an existing observability dashboard' })
   @ApiResponse({ status: 200, description: 'Dashboard updated' })
   async updateDashboard(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateObservabilityDashboardDto,
     @CurrentUser('id') userId: string,
   ) {
@@ -278,7 +289,7 @@ export class ObservabilityController {
   @Put('dashboards/favorite/:id')
   @ApiOperation({ summary: 'Toggle dashboard favorite' })
   @ApiResponse({ status: 200, description: 'New favorite status' })
-  async favoriteDashboard(@Param('id') id: string, @Body() body: FavoriteDto) {
+  async favoriteDashboard(@Param('id', ParseUUIDPipe) id: string, @Body() body: FavoriteDto) {
     return this.observabilityService.favoriteDashboard(id);
   }
 }

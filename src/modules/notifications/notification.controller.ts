@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Patch, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Patch, Param, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -36,14 +36,14 @@ export class NotificationController {
   @Patch('view/:id')
   @ApiOperation({ summary: 'Mark single notification as viewed' })
   @ApiResponse({ status: 200, description: 'Notification marked as viewed' })
-  async view(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  async view(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.notificationService.markAsViewed(id, userId);
   }
 
   @Patch('unsubscribe/:id')
   @ApiOperation({ summary: 'Unsubscribe from notification setting' })
   @ApiResponse({ status: 200, description: 'User unsubscribed' })
-  async unsubscribe(@Param('id') id: string, @CurrentUser('id') userId: string) {
+  async unsubscribe(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
     return this.notificationService.unsubscribeUserFromNotification(id, userId);
   }
 

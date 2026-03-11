@@ -106,6 +106,9 @@ export const ErrorMessages = {
   NOTIFICATION_SETTING_NOT_FOUND: 'Notification setting not found',
   NOTIFICATION_NOT_FOUND: 'Notification not found',
 
+  // Authorization errors
+  UNAUTHORIZED_ACTION: 'You are not authorized to perform this action.',
+
   // Generic errors (preserving v3 typo for backward compat)
   ERROR_OCCURED: 'an error occured!',
   NOT_FOUND: 'You are lost',

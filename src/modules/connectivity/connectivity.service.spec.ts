@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { ConnectivityService } from './connectivity.service';
 import { CoreModulesTables } from '../../database/entities/core-modules-tables.entity';
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
@@ -37,6 +38,14 @@ const mockDateHelper = {
 
 const mockExportHelper = {
   exportTabularToExcel: jest.fn().mockResolvedValue('/tmp/export.xlsx'),
+};
+
+const mockConfigService = {
+  get: jest.fn((key: string) => {
+    if (key === 'DB_DATA_NAME') return 'iMonitorData';
+    if (key === 'DB_CORE_NAME') return 'iMonitorV3_1';
+    return undefined;
+  }),
 };
 
 // ─── Test Data ───────────────────────────────────────────────────────────────
@@ -88,6 +97,7 @@ describe('ConnectivityService', () => {
         { provide: SystemConfigService, useValue: mockSystemConfigService },
         { provide: DateHelperService, useValue: mockDateHelper },
         { provide: ExportHelperService, useValue: mockExportHelper },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -164,6 +174,11 @@ describe('ConnectivityService', () => {
       expect(sqlArg).toContain('UNION ALL');
       expect(sqlArg).toContain('V3_sdp_connectivity_test');
       expect(sqlArg).toContain('V3_air_connectivity_test');
+      // DB names sourced from ConfigService, not hardcoded
+      expect(mockConfigService.get).toHaveBeenCalledWith('DB_DATA_NAME');
+      expect(mockConfigService.get).toHaveBeenCalledWith('DB_CORE_NAME');
+      expect(sqlArg).toContain('iMonitorData');
+      expect(sqlArg).toContain('iMonitorV3_1');
     });
   });
 
@@ -256,6 +271,71 @@ describe('ConnectivityService', () => {
 
       expect(result.body).toEqual([]);
       expect(result.header).toHaveLength(6);
+    });
+
+    it('should use ? placeholders for dates and pass them in queryParams array', async () => {
+      const qb = modulesTablesRepo.createQueryBuilder();
+      qb.getMany.mockResolvedValue([sampleConnectivityTable]);
+      mockSystemConfigService.getConfigValues.mockResolvedValue({ dateFormat1: '%Y-%m-%d %H:%i:%s' });
+      mockLegacyDataDb.query.mockResolvedValue([]);
+
+      await service.getUserConnectivityHistory(TEST_USER_ID, '2026-03-01', '2026-03-11', ConnectivityFilter.ALL);
+
+      const [sqlArg, paramsArg] = mockLegacyDataDb.query.mock.calls[0];
+      // SQL must use ? placeholders, not string-interpolated dates
+      expect(sqlArg).not.toContain('2026-03-11 10:00:00');
+      expect(sqlArg).toContain('?');
+      // Params: [fromDate, toDate] per table, then userId at the end
+      expect(paramsArg).toEqual(['2026-03-11 10:00:00', '2026-03-11 10:00:00', TEST_USER_ID]);
+    });
+
+    it('should push two date params per UNION arm when multiple tables exist', async () => {
+      const secondTable = {
+        id: 'tbl-2',
+        tableName: 'V3_air_connectivity_test',
+        nodeNameColumn: 'node_name',
+        statDateNameColumn: 'stat_date',
+      };
+      const qb = modulesTablesRepo.createQueryBuilder();
+      qb.getMany.mockResolvedValue([sampleConnectivityTable, secondTable]);
+      mockSystemConfigService.getConfigValues.mockResolvedValue({ dateFormat1: '%Y-%m-%d %H:%i:%s' });
+      mockLegacyDataDb.query.mockResolvedValue([]);
+
+      await service.getUserConnectivityHistory(TEST_USER_ID, '2026-03-01', '2026-03-11', ConnectivityFilter.ALL);
+
+      const [, paramsArg] = mockLegacyDataDb.query.mock.calls[0];
+      // 2 tables × 2 date params + 1 userId = 5
+      expect(paramsArg).toHaveLength(5);
+      expect(paramsArg[paramsArg.length - 1]).toBe(TEST_USER_ID);
+    });
+
+    it('should use ConfigService for DB names, not hardcoded strings', async () => {
+      const qb = modulesTablesRepo.createQueryBuilder();
+      qb.getMany.mockResolvedValue([sampleConnectivityTable]);
+      mockSystemConfigService.getConfigValues.mockResolvedValue({ dateFormat1: '%Y-%m-%d %H:%i:%s' });
+      mockLegacyDataDb.query.mockResolvedValue([]);
+
+      await service.getUserConnectivityHistory(TEST_USER_ID, '2026-03-01', '2026-03-11', ConnectivityFilter.ALL);
+
+      expect(mockConfigService.get).toHaveBeenCalledWith('DB_DATA_NAME');
+      expect(mockConfigService.get).toHaveBeenCalledWith('DB_CORE_NAME');
+      const [sqlArg] = mockLegacyDataDb.query.mock.calls[0];
+      expect(sqlArg).toContain('iMonitorData');
+      expect(sqlArg).toContain('iMonitorV3_1');
+    });
+
+    it('should fall back to default dateFormat when config value contains invalid characters', async () => {
+      const qb = modulesTablesRepo.createQueryBuilder();
+      qb.getMany.mockResolvedValue([sampleConnectivityTable]);
+      // Simulate a tampered/invalid dateFormat from the DB
+      mockSystemConfigService.getConfigValues.mockResolvedValue({ dateFormat1: "%Y'; DROP TABLE core_report; --" });
+      mockLegacyDataDb.query.mockResolvedValue([]);
+
+      await service.getUserConnectivityHistory(TEST_USER_ID, '2026-03-01', '2026-03-11', ConnectivityFilter.ALL);
+
+      const [sqlArg] = mockLegacyDataDb.query.mock.calls[0];
+      expect(sqlArg).toContain('%Y-%m-%d %H:%i:%s');
+      expect(sqlArg).not.toContain('DROP TABLE');
     });
   });
 

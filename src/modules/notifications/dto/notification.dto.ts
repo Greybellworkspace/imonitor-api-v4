@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, IsEmail } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsEmail } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -15,6 +15,7 @@ export class ListSentNotificationsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   size?: number = 20;
 
   @ApiPropertyOptional({ description: 'Search text (filters chartName, widgetBuilderName, message)' })

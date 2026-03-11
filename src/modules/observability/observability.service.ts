@@ -6,10 +6,10 @@
  * threshold evaluation, and chart generation.
  */
 
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { v4 } from 'uuid';
 import { CoreObservabilityMetrics } from '../../database/entities/core-observability-metrics.entity';
 import { CoreObservabilityMetricsModule } from '../../database/entities/core-observability-metrics-module.entity';
@@ -24,6 +24,8 @@ import { CoreObservabilityDashboard } from '../../database/entities/core-observa
 import { CoreObservabilityDashboardCharts } from '../../database/entities/core-observability-dashboard-charts.entity';
 import { CoreObservabilityDashboardError } from '../../database/entities/core-observability-dashboard-error.entity';
 import { CoreObservabilityNotificationSent } from '../../database/entities/core-observability-notification-sent.entity';
+import { CoreModules } from '../../database/entities/core-modules.entity';
+import { CoreModulesTables } from '../../database/entities/core-modules-tables.entity';
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
@@ -88,6 +90,10 @@ export class ObservabilityService {
     private readonly dashboardErrorRepo: Repository<CoreObservabilityDashboardError>,
     @InjectRepository(CoreObservabilityNotificationSent)
     private readonly notificationSentRepo: Repository<CoreObservabilityNotificationSent>,
+    @InjectRepository(CoreModules)
+    private readonly modulesRepo: Repository<CoreModules>,
+    @InjectRepository(CoreModulesTables)
+    private readonly modulesTablesRepo: Repository<CoreModulesTables>,
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
     private readonly legacyDataDb: LegacyDataDbService,
@@ -106,11 +112,11 @@ export class ObservabilityService {
    * v3: fetchNodes()
    */
   async fetchNodes(): Promise<ModuleNodeDto[]> {
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
-    const nodes: ModuleNodeDto[] = await this.dataSource.query(
-      `SELECT id, name FROM ${coreDbName}.core_modules WHERE isNode = 1`,
-    );
-    return nodes;
+    const nodes = await this.modulesRepo.find({
+      where: { isNode: true },
+      select: { id: true, name: true },
+    });
+    return nodes.map((n) => ({ id: n.id, name: n.name }));
   }
 
   /**
@@ -120,18 +126,15 @@ export class ObservabilityService {
   async fetchFieldsByNode(ids: number[]): Promise<unknown> {
     if (!ids || ids.length === 0) return { refTable: null, tables: [] };
 
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
+    const tables = await this.modulesTablesRepo
+      .createQueryBuilder('mt')
+      .select(['mt.id', 'mt.displayName'])
+      .where('mt.tableType = :type', { type: 'statistics' })
+      .andWhere('mt.tableName <> :excluded', { excluded: 'params_table' })
+      .andWhere('mt.mId IN (:...ids)', { ids })
+      .getMany();
 
-    const tables: Array<{ id: string; displayName: string }> = await this.dataSource.query(
-      `SELECT mt.id, mt.displayName
-       FROM ${coreDbName}.core_modules_tables mt
-       WHERE mt.tableType = 'statistics'
-         AND mt.tableName <> 'params_table'
-         AND mt.mId IN (?)`,
-      [ids],
-    );
-
-    return { tables };
+    return { tables: tables.map((t) => ({ id: t.id, displayName: t.displayName })) };
   }
 
   /**
@@ -141,15 +144,15 @@ export class ObservabilityService {
   async getMetricsByNodeIds(body: GetMetricsByNodeIdsDto): Promise<Array<{ id: string; name: string }>> {
     if (!body.nodeIds || body.nodeIds.length === 0) return [];
 
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
-    const metrics: Array<{ id: string; name: string }> = await this.dataSource.query(
-      `SELECT DISTINCT m.id, m.name
-       FROM ${coreDbName}.core_observability_metrics m
-       INNER JOIN ${coreDbName}.core_observability_metrics_module mm ON m.id = mm.observabilityMetricId
-       WHERE mm.moduleId IN (?)`,
-      [body.nodeIds],
-    );
-    return metrics;
+    const metrics = await this.metricsRepo
+      .createQueryBuilder('m')
+      .innerJoin('core_observability_metrics_module', 'mm', 'mm.observabilityMetricId = m.id')
+      .where('mm.moduleId IN (:...ids)', { ids: body.nodeIds })
+      .select(['m.id', 'm.name'])
+      .distinct(true)
+      .getMany();
+
+    return metrics.map((m) => ({ id: m.id, name: m.name }));
   }
 
   // =========================================================================
@@ -161,16 +164,14 @@ export class ObservabilityService {
    * v3: listMetrics()
    */
   async listMetrics(): Promise<ListObservabilityMetricDto[]> {
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
-    const metrics: ListObservabilityMetricDto[] = await this.dataSource.query(
+    return this.dataSource.query(
       `SELECT m.id, m.name, m.ownerId, m.isFavorite, m.isExploded,
-              (SELECT userName FROM ${coreDbName}.core_application_users WHERE id = m.ownerId) AS owner,
+              (SELECT userName FROM core_application_users WHERE id = m.ownerId) AS owner,
               DATE_FORMAT(m.createdAt, "%Y-%m-%d %H:%i") AS createdAt,
               DATE_FORMAT(m.updatedAt, "%Y-%m-%d %H:%i") AS updatedAt
-       FROM ${coreDbName}.core_observability_metrics m
+       FROM core_observability_metrics m
        ORDER BY m.isDefault DESC, m.isFavorite DESC, m.updatedAt DESC`,
     );
-    return metrics;
   }
 
   /**
@@ -178,7 +179,6 @@ export class ObservabilityService {
    * v3: listMetricsForCharts()
    */
   async listMetricsForCharts(filter: MetricChartFilters): Promise<FilterObservabilityMetricsDto[]> {
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
     let whereClause = '';
     if (filter === MetricChartFilters.EXPLODED) {
       whereClause = 'WHERE m.isExploded = 1';
@@ -186,12 +186,11 @@ export class ObservabilityService {
       whereClause = 'WHERE m.isExploded = 0 OR m.isExploded IS NULL';
     }
 
-    const metrics: FilterObservabilityMetricsDto[] = await this.dataSource.query(
+    return this.dataSource.query(
       `SELECT m.id, m.name, m.isExploded
-       FROM ${coreDbName}.core_observability_metrics m ${whereClause}
+       FROM core_observability_metrics m ${whereClause}
        ORDER BY m.name`,
     );
-    return metrics;
   }
 
   /**
@@ -323,6 +322,10 @@ export class ObservabilityService {
     const existing = await this.metricsRepo.findOne({ where: { id: dto.id } });
     if (!existing) {
       throw new NotFoundException(ErrorMessages.METRIC_DOES_NOT_EXIST);
+    }
+
+    if (existing.ownerId !== currentUserId) {
+      throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ACTION);
     }
 
     // Check if exploded status changed — not allowed if charts exist
@@ -592,16 +595,14 @@ export class ObservabilityService {
    * v3: listCharts()
    */
   async listCharts(): Promise<ListObservabilityChartsDto[]> {
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
-    const charts: ListObservabilityChartsDto[] = await this.dataSource.query(
+    return this.dataSource.query(
       `SELECT c.id, c.name, c.type, c.isFavorite,
-              (SELECT userName FROM ${coreDbName}.core_application_users WHERE id = c.createdBy) AS owner,
+              (SELECT userName FROM core_application_users WHERE id = c.createdBy) AS owner,
               DATE_FORMAT(c.createdAt, "%Y-%m-%d %H:%i") AS createdAt,
               DATE_FORMAT(c.updatedAt, "%Y-%m-%d %H:%i") AS updatedAt
-       FROM ${coreDbName}.core_observability_charts c
+       FROM core_observability_charts c
        ORDER BY c.isFavorite DESC, c.updatedAt DESC`,
     );
-    return charts;
   }
 
   /**
@@ -629,6 +630,10 @@ export class ObservabilityService {
     const existing = await this.chartsRepo.findOne({ where: { id: dto.id } });
     if (!existing) {
       throw new NotFoundException(ErrorMessages.OB_CHART_DOES_NOT_EXIST);
+    }
+
+    if (existing.createdBy !== currentUserId) {
+      throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ACTION);
     }
 
     try {
@@ -1123,16 +1128,14 @@ export class ObservabilityService {
    * v3: listDashboards()
    */
   async listDashboards(): Promise<ListObservabilityDashboardsDto[]> {
-    const coreDbName = this.configService.get<string>('DB_CORE_NAME');
-    const dashboards: ListObservabilityDashboardsDto[] = await this.dataSource.query(
+    return this.dataSource.query(
       `SELECT d.id, d.name, d.ownerId, d.isFavorite,
-              (SELECT userName FROM ${coreDbName}.core_application_users WHERE id = d.ownerId) AS owner,
+              (SELECT userName FROM core_application_users WHERE id = d.ownerId) AS owner,
               DATE_FORMAT(d.createdAt, "%Y-%m-%d %H:%i") AS createdAt,
               DATE_FORMAT(d.updatedAt, "%Y-%m-%d %H:%i") AS updatedAt
-       FROM ${coreDbName}.core_observability_dashboard d
+       FROM core_observability_dashboard d
        ORDER BY d.isFavorite DESC, d.updatedAt DESC`,
     );
-    return dashboards;
   }
 
   /**
@@ -1169,6 +1172,10 @@ export class ObservabilityService {
     const existing = await this.dashboardRepo.findOne({ where: { id: dto.id } });
     if (!existing) {
       throw new NotFoundException(ErrorMessages.OB_DASHBOARD_DOES_NOT_EXIST);
+    }
+
+    if (existing.ownerId !== currentUserId) {
+      throw new ForbiddenException(ErrorMessages.UNAUTHORIZED_ACTION);
     }
 
     try {

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { ObservabilityService } from './observability.service';
@@ -22,6 +22,8 @@ import { CoreObservabilityDashboard } from '../../database/entities/core-observa
 import { CoreObservabilityDashboardCharts } from '../../database/entities/core-observability-dashboard-charts.entity';
 import { CoreObservabilityDashboardError } from '../../database/entities/core-observability-dashboard-error.entity';
 import { CoreObservabilityNotificationSent } from '../../database/entities/core-observability-notification-sent.entity';
+import { CoreModules } from '../../database/entities/core-modules.entity';
+import { CoreModulesTables } from '../../database/entities/core-modules-tables.entity';
 import { MetricChartFilters, ObservabilityThresholdStatus } from '../../shared/enums/observability.enum';
 
 // ─── Mock Factories ──────────────────────────────────────────────────────────
@@ -159,6 +161,8 @@ describe('ObservabilityService', () => {
   let dashboardChartsRepo: ReturnType<typeof createMockRepo>;
   let dashboardErrorRepo: ReturnType<typeof createMockRepo>;
   let notificationSentRepo: ReturnType<typeof createMockRepo>;
+  let modulesRepo: ReturnType<typeof createMockRepo>;
+  let modulesTablesRepo: ReturnType<typeof createMockRepo>;
 
   beforeEach(async () => {
     metricsRepo = createMockRepo();
@@ -174,6 +178,8 @@ describe('ObservabilityService', () => {
     dashboardChartsRepo = createMockRepo();
     dashboardErrorRepo = createMockRepo();
     notificationSentRepo = createMockRepo();
+    modulesRepo = createMockRepo();
+    modulesTablesRepo = createMockRepo();
 
     jest.clearAllMocks();
 
@@ -202,6 +208,8 @@ describe('ObservabilityService', () => {
         { provide: getRepositoryToken(CoreObservabilityDashboardCharts), useValue: dashboardChartsRepo },
         { provide: getRepositoryToken(CoreObservabilityDashboardError), useValue: dashboardErrorRepo },
         { provide: getRepositoryToken(CoreObservabilityNotificationSent), useValue: notificationSentRepo },
+        { provide: getRepositoryToken(CoreModules), useValue: modulesRepo },
+        { provide: getRepositoryToken(CoreModulesTables), useValue: modulesTablesRepo },
         { provide: DataSource, useValue: mockDataSource },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LegacyDataDbService, useValue: mockLegacyDataDb },
@@ -218,14 +226,18 @@ describe('ObservabilityService', () => {
   // ─── fetchNodes() ─────────────────────────────────────────────────────────
 
   describe('fetchNodes()', () => {
-    it('should query and return module nodes with isNode=1', async () => {
+    it('should return module nodes via TypeORM repo where isNode=true', async () => {
       const nodes = [{ id: 'node-1', name: 'SDP Node' }];
-      mockDataSource.query.mockResolvedValue(nodes);
+      modulesRepo.find.mockResolvedValue(nodes);
 
       const result = await service.fetchNodes();
 
-      expect(result).toEqual(nodes);
-      expect(mockDataSource.query).toHaveBeenCalledWith(expect.stringContaining('isNode = 1'));
+      expect(result).toEqual([{ id: 'node-1', name: 'SDP Node' }]);
+      expect(modulesRepo.find).toHaveBeenCalledWith({
+        where: { isNode: true },
+        select: { id: true, name: true },
+      });
+      expect(mockDataSource.query).not.toHaveBeenCalled();
     });
   });
 
@@ -236,17 +248,25 @@ describe('ObservabilityService', () => {
       const result = await service.fetchFieldsByNode([]);
 
       expect(result).toEqual({ refTable: null, tables: [] });
-      expect(mockDataSource.query).not.toHaveBeenCalled();
+      expect(modulesTablesRepo.createQueryBuilder).not.toHaveBeenCalled();
     });
 
-    it('should query tables by module IDs', async () => {
-      const tables = [{ id: 'tbl-1', displayName: 'Stats Table' }];
-      mockDataSource.query.mockResolvedValue(tables);
+    it('should query tables by module IDs via TypeORM QueryBuilder', async () => {
+      const entities = [{ id: 'tbl-1', displayName: 'Stats Table' }];
+      const mockQb = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(entities),
+      };
+      modulesTablesRepo.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.fetchFieldsByNode([1, 2]);
 
-      expect(result).toEqual({ tables });
-      expect(mockDataSource.query).toHaveBeenCalledWith(expect.stringContaining('core_modules_tables'), [[1, 2]]);
+      expect(result).toEqual({ tables: [{ id: 'tbl-1', displayName: 'Stats Table' }] });
+      expect(modulesTablesRepo.createQueryBuilder).toHaveBeenCalledWith('mt');
+      expect(mockQb.where).toHaveBeenCalledWith('mt.tableType = :type', { type: 'statistics' });
+      expect(mockDataSource.query).not.toHaveBeenCalled();
     });
   });
 
@@ -257,19 +277,25 @@ describe('ObservabilityService', () => {
       const result = await service.getMetricsByNodeIds({ nodeIds: [] });
 
       expect(result).toEqual([]);
-      expect(mockDataSource.query).not.toHaveBeenCalled();
+      expect(metricsRepo.createQueryBuilder).not.toHaveBeenCalled();
     });
 
-    it('should query metrics by nodeIds', async () => {
-      const metrics = [{ id: TEST_METRIC_ID, name: 'Test Metric' }];
-      mockDataSource.query.mockResolvedValue(metrics);
+    it('should query metrics by nodeIds via TypeORM QueryBuilder', async () => {
+      const entities = [{ id: TEST_METRIC_ID, name: 'Test Metric' }];
+      const mockQb = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        distinct: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(entities),
+      };
+      metricsRepo.createQueryBuilder.mockReturnValue(mockQb);
 
       const result = await service.getMetricsByNodeIds({ nodeIds: ['node-1', 'node-2'] });
 
-      expect(result).toEqual(metrics);
-      expect(mockDataSource.query).toHaveBeenCalledWith(expect.stringContaining('core_observability_metrics'), [
-        ['node-1', 'node-2'],
-      ]);
+      expect(result).toEqual([{ id: TEST_METRIC_ID, name: 'Test Metric' }]);
+      expect(metricsRepo.createQueryBuilder).toHaveBeenCalledWith('m');
+      expect(mockDataSource.query).not.toHaveBeenCalled();
     });
   });
 
@@ -431,6 +457,12 @@ describe('ObservabilityService', () => {
       metricsRepo.findOne.mockResolvedValue(null);
 
       await expect(service.updateMetric(TEST_USER_ID, updateDto)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when non-owner attempts to update metric', async () => {
+      metricsRepo.findOne.mockResolvedValue({ ...sampleMetric, ownerId: 'other-user-id' });
+
+      await expect(service.updateMetric(TEST_USER_ID, updateDto)).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw BadRequestException when exploded status changed with existing charts', async () => {

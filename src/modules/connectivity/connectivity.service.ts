@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { CoreModulesTables } from '../../database/entities/core-modules-tables.entity';
 import { LegacyDataDbService } from '../../database/legacy-data-db/legacy-data-db.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
@@ -37,6 +38,7 @@ export class ConnectivityService {
     private readonly systemConfigService: SystemConfigService,
     private readonly dateHelper: DateHelperService,
     private readonly exportHelper: ExportHelperService,
+    private readonly configService: ConfigService,
   ) {}
 
   // =========================================================================
@@ -50,11 +52,14 @@ export class ConnectivityService {
     }
 
     const backPeriod = (await this.systemConfigService.getConfigValue('connectivityBackPeriod')) || '3';
+    const dbData = this.configService.get<string>('DB_DATA_NAME');
+    const dbCore = this.configService.get<string>('DB_CORE_NAME');
 
-    const unions = connectivityTables.map(
-      (t) =>
-        `SELECT ${t.statDateNameColumn} AS stat_date, ${t.nodeNameColumn} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM iMonitorData.\`${t.tableName}\` WHERE ${t.statDateNameColumn} >= @target_date`,
-    );
+    const unions = connectivityTables.map((t) => {
+      const statCol = this.sanitizeColumn(t.statDateNameColumn);
+      const nodeCol = this.sanitizeColumn(t.nodeNameColumn);
+      return `SELECT ${statCol} AS stat_date, ${nodeCol} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM ${dbData}.\`${t.tableName}\` WHERE ${statCol} >= @target_date`;
+    });
 
     const sql = `
       SET @target_date = NOW() - INTERVAL ${parseInt(backPeriod, 10)} MINUTE;
@@ -67,9 +72,9 @@ export class ConnectivityService {
         CASE WHEN t.is_reporting = 1 THEN 'Reporting' ELSE 'HM' END AS state,
         t.status
       FROM (${unions.join(' UNION ALL ')}) t
-      JOIN iMonitorV3_1.core_modules m ON t.moduleId = m.id
-      JOIN iMonitorV3_1.core_privileges p ON t.moduleId = p.ModuleId
-      JOIN iMonitorV3_1.core_application_roles r ON p.RoleId = r.id
+      JOIN ${dbCore}.core_modules m ON t.moduleId = m.id
+      JOIN ${dbCore}.core_privileges p ON t.moduleId = p.ModuleId
+      JOIN ${dbCore}.core_application_roles r ON p.RoleId = r.id
       WHERE r.name = 'admin' AND p.UserId = ?
       GROUP BY t.stat_date, t.node_name, t.ip, t.ssh_user
       ORDER BY t.status, module
@@ -102,16 +107,28 @@ export class ConnectivityService {
     }
 
     const config = await this.systemConfigService.getConfigValues(['dateFormat1']);
-    const dateFormat = config['dateFormat1'] || '%Y-%m-%d %H:%i:%s';
+    const rawDateFormat = config['dateFormat1'] || '%Y-%m-%d %H:%i:%s';
+    // [S-04] Validate dateFormat against allowed MySQL DATE_FORMAT specifiers only.
+    const DATE_FORMAT_PATTERN = /^[%YymdHhisapAMTWDSU\-:/ .]+$/;
+    const dateFormat = DATE_FORMAT_PATTERN.test(rawDateFormat) ? rawDateFormat : '%Y-%m-%d %H:%i:%s';
     const filterClause = this.getConnectivityFilter(filter);
 
     const formattedFromDate = this.dateHelper.formatDate(DATE_FULL_TIME, new Date(fromDate));
     const formattedToDate = this.dateHelper.formatDate(DATE_FULL_TIME, new Date(toDate));
 
-    const unions = connectivityTables.map(
-      (t) =>
-        `SELECT ${t.statDateNameColumn} AS stat_date, ${t.nodeNameColumn} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM iMonitorData.\`${t.tableName}\` WHERE ${t.statDateNameColumn} >= '${formattedFromDate}' AND ${t.statDateNameColumn} <= '${formattedToDate}' ${filterClause}`,
-    );
+    const dbData = this.configService.get<string>('DB_DATA_NAME');
+    const dbCore = this.configService.get<string>('DB_CORE_NAME');
+
+    // [S-03] Parameterize date bounds. Each UNION arm needs both date params,
+    // so push two params per table then append userId at the end.
+    const queryParams: string[] = [];
+    const unions = connectivityTables.map((t) => {
+      const statCol = this.sanitizeColumn(t.statDateNameColumn);
+      const nodeCol = this.sanitizeColumn(t.nodeNameColumn);
+      queryParams.push(formattedFromDate, formattedToDate);
+      return `SELECT ${statCol} AS stat_date, ${nodeCol} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM ${dbData}.\`${t.tableName}\` WHERE ${statCol} >= ? AND ${statCol} <= ? ${filterClause}`;
+    });
+    queryParams.push(userId);
 
     const sql = `
       SELECT
@@ -122,16 +139,16 @@ export class ConnectivityService {
         t.ssh_user,
         t.status
       FROM (${unions.join(' UNION ALL ')}) t
-      JOIN iMonitorV3_1.core_modules m ON t.moduleId = m.id
-      JOIN iMonitorV3_1.core_privileges p ON t.moduleId = p.ModuleId
-      JOIN iMonitorV3_1.core_application_roles r ON p.RoleId = r.id
+      JOIN ${dbCore}.core_modules m ON t.moduleId = m.id
+      JOIN ${dbCore}.core_privileges p ON t.moduleId = p.ModuleId
+      JOIN ${dbCore}.core_application_roles r ON p.RoleId = r.id
       WHERE r.name = 'admin' AND p.UserId = ?
       GROUP BY t.stat_date, t.node_name, t.ip
       ORDER BY t.stat_date, t.status
     `;
 
     try {
-      const body = await this.legacyDataDb.query<Record<string, unknown>>(sql, [userId]);
+      const body = await this.legacyDataDb.query<Record<string, unknown>>(sql, queryParams);
       return { header: this.buildHistoryHeaders(), body };
     } catch (error) {
       this.logger.error(ErrorMessages.CONNECTIVITY_ERROR, error);
@@ -164,18 +181,21 @@ export class ConnectivityService {
     if (connectivityTables.length === 0) return '';
 
     const backPeriod = (await this.systemConfigService.getConfigValue('connectivityBackPeriod')) || '3';
+    const dbData = this.configService.get<string>('DB_DATA_NAME');
+    const dbCore = this.configService.get<string>('DB_CORE_NAME');
 
-    const unions = connectivityTables.map(
-      (t) =>
-        `SELECT ${t.statDateNameColumn} AS stat_date, ${t.nodeNameColumn} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM iMonitorData.\`${t.tableName}\` WHERE ${t.statDateNameColumn} >= @target_date AND status <> 'OK'`,
-    );
+    const unions = connectivityTables.map((t) => {
+      const statCol = this.sanitizeColumn(t.statDateNameColumn);
+      const nodeCol = this.sanitizeColumn(t.nodeNameColumn);
+      return `SELECT ${statCol} AS stat_date, ${nodeCol} AS node_name, ip, ssh_user, is_reporting, status, mId AS moduleId FROM ${dbData}.\`${t.tableName}\` WHERE ${statCol} >= @target_date AND status <> 'OK'`;
+    });
 
     const sql = `
       SET @target_date = NOW() - INTERVAL ${parseInt(backPeriod, 10)} MINUTE;
       SELECT GROUP_CONCAT(CONCAT('"', t.node_name, '"')) AS node_name
       FROM (${unions.join(' UNION ALL ')}) t
-      JOIN iMonitorV3_1.core_privileges p ON t.moduleId = p.ModuleId
-      JOIN iMonitorV3_1.core_application_roles r ON p.RoleId = r.id
+      JOIN ${dbCore}.core_privileges p ON t.moduleId = p.ModuleId
+      JOIN ${dbCore}.core_application_roles r ON p.RoleId = r.id
       WHERE r.name = 'admin' AND p.UserId = ?
       GROUP BY t.node_name
     `;
@@ -195,6 +215,18 @@ export class ConnectivityService {
   // =========================================================================
   // PRIVATE HELPERS
   // =========================================================================
+
+  /**
+   * [S-01] Defense-in-depth: column names sourced from the DB are trusted, but
+   * we still reject anything outside the safe identifier character set to prevent
+   * accidental injection if a record is ever tampered with.
+   */
+  private sanitizeColumn(name: string): string {
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+      throw new Error(`Invalid column identifier: "${name}"`);
+    }
+    return name;
+  }
 
   private async getConnectivityTables(): Promise<ConnectivityTable[]> {
     const tables = await this.modulesTablesRepo
