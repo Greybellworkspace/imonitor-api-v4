@@ -35,18 +35,18 @@ Implement the full Observability module — the largest of the three with 30 end
 
 ### Tasks
 
-- [ ] Task 2.1: Create DTOs for observability metrics — `CreateObservabilityMetricDto`, `UpdateObservabilityMetricDto`, `GenerateObservabilityMetricDto`, `ListObservabilityMetricDto`, `ObservabilityMetricFilterDto`, `StatusAlertDto`, `FavoriteDto`, `GetMetricsByNodeIdsDto`
-- [ ] Task 2.2: Create DTOs for observability charts — `ObservabilityChartDto` (discriminated union for 8 types), `VerticalStatusPanelDto`, `HorizontalStatusPanelDto`, `CounterListChartDto`, `HexagonChartDto`, `ObservabilityTrendChartDto`, `ObservabilityVerticalBarChartDto`, `ConnectivityChartDto`, `TimeTravelChartDto`
-- [ ] Task 2.3: Create DTOs for observability dashboards — `SaveObservabilityDashboardDto`, `UpdateObservabilityDashboardDto`, `DashboardChartsDto`, `ListObservabilityDashboardsDto`, `GetDashboardByIdDto`
-- [ ] Task 2.4: Create `ObservabilityQueryService` — query builder for observability metrics (reuse `generateObservability()` logic from v3 `_queryService`)
-- [ ] Task 2.5: Create `ObservabilityUtilService` — threshold evaluation helpers (`fetchMetricField`, `fetchExplodedField`, `fetchThresholdData`, `processTimeFilters`, `processAlternativeFilter`)
-- [ ] Task 2.6: Create `ObservabilityService` — metrics CRUD methods (`listMetrics`, `getMetricById`, `saveMetric`, `updateMetric`, `favorite`, `fetchNodes`, `fetchFieldsByNode`, `getMetricsByNodeIds`, `goToReport`)
-- [ ] Task 2.7: Extend `ObservabilityService` — query execution methods (`executeQuery`, `executeMetricQuery` with threshold coloring and exploded data support)
-- [ ] Task 2.8: Extend `ObservabilityService` — chart CRUD methods (`saveChart`, `listCharts`, `getChartById`, `updateChart`, `favoriteChart`, `listChartsMetric`)
-- [ ] Task 2.9: Implement 8 chart generators — `generateVerticalStatusPanel`, `generateHorizontalStatusPanel`, `generateCounterListChart`, `generateHexagonChart`, `generateTrendChart`, `generateVerticalBarChart`, `generateConnectivityChart`, `generateTimeTravelChart`
-- [ ] Task 2.10: Extend `ObservabilityService` — dashboard CRUD methods (`saveDashboard`, `listDashboards`, `getDashboardById`, `updateDashboard`, `favoriteDashboard`)
-- [ ] Task 2.11: Create `ObservabilityController` with all 30 endpoints, Swagger decorators, PrivilegeGuard
-- [ ] Task 2.12: Create `ObservabilityModule` — register service, controller, inject repositories and LegacyDataDbService
+- [x] Task 2.1: Create DTOs for observability metrics — `CreateObservabilityMetricDto`, `UpdateObservabilityMetricDto`, `GenerateObservabilityMetricDto`, `ListObservabilityMetricDto`, `ObservabilityMetricFilterDto`, `StatusAlertDto`, `FavoriteDto`, `GetMetricsByNodeIdsDto`
+- [x] Task 2.2: Create DTOs for observability charts — `ObservabilityChartDto` (discriminated union for 8 types), `VerticalStatusPanelDto`, `HorizontalStatusPanelDto`, `CounterListChartDto`, `HexagonChartDto`, `ObservabilityTrendChartDto`, `ObservabilityVerticalBarChartDto`, `ConnectivityChartDto`, `TimeTravelChartDto`
+- [x] Task 2.3: Create DTOs for observability dashboards — `SaveObservabilityDashboardDto`, `UpdateObservabilityDashboardDto`, `DashboardChartsDto`, `ListObservabilityDashboardsDto`, `GetDashboardByIdDto`
+- [x] Task 2.4: Create `ObservabilityQueryService` — query builder for observability metrics (reuse `generateObservability()` logic from v3 `_queryService`)
+- [x] Task 2.5: Create `ObservabilityUtilService` — threshold evaluation helpers (`fetchMetricField`, `fetchExplodedField`, `fetchThresholdData`, `processTimeFilters`, `processAlternativeFilter`)
+- [x] Task 2.6: Create `ObservabilityService` — metrics CRUD methods (`listMetrics`, `getMetricById`, `saveMetric`, `updateMetric`, `favorite`, `fetchNodes`, `fetchFieldsByNode`, `getMetricsByNodeIds`, `goToReport`)
+- [x] Task 2.7: Extend `ObservabilityService` — query execution methods (`executeQuery`, `executeMetricQuery` with threshold coloring and exploded data support)
+- [x] Task 2.8: Extend `ObservabilityService` — chart CRUD methods (`saveChart`, `listCharts`, `getChartById`, `updateChart`, `favoriteChart`, `listChartsMetric`)
+- [x] Task 2.9: Implement 8 chart generators — `generateVerticalStatusPanel`, `generateHorizontalStatusPanel`, `generateCounterListChart`, `generateHexagonChart`, `generateTrendChart`, `generateVerticalBarChart`, `generateConnectivityChart`, `generateTimeTravelChart`
+- [x] Task 2.10: Extend `ObservabilityService` — dashboard CRUD methods (`saveDashboard`, `listDashboards`, `getDashboardById`, `updateDashboard`, `favoriteDashboard`)
+- [x] Task 2.11: Create `ObservabilityController` with all 30 endpoints, Swagger decorators, PrivilegeGuard
+- [x] Task 2.12: Create `ObservabilityModule` — register service, controller, inject repositories and LegacyDataDbService
 
 ### Verification
 
