@@ -78,12 +78,12 @@ Implement the Notifications module — 6 endpoints for subscription management, 
 
 ### Tasks
 
-- [ ] Task 4.1: Create DTOs for notifications — `SentNotificationDto`, `NotificationSettingDto`, `AlertNotificationDto`, `NotificationDto` (lower/mid/upper levels), `PaginationParamsDto`
-- [ ] Task 4.2: Create `NotificationService` — `listSent` (paginated with search), `listNotificationsSettings` (user subscriptions with JSON extraction from widget builder charts)
-- [ ] Task 4.3: Extend `NotificationService` — `markAsViewed`, `viewAll`, `unsubscribeUserFromNotification`
-- [ ] Task 4.4: Implement `processChartNotification` — threshold evaluation for 15+ chart types (PROGRESS, PERCENTAGE, COUNTER, EXPLODED_*, BAR, SOLO_BAR, TOP_LEAST_BAR, CUMULATIVE_TABLE, TABULAR, etc.)
-- [ ] Task 4.5: Create `NotificationController` with 6 endpoints, Swagger decorators, PrivilegeGuard
-- [ ] Task 4.6: Create `NotificationModule` — register service, controller, inject repositories
+- [x] Task 4.1: Create DTOs for notifications — `ListSentNotificationsQueryDto`, `TestEmailParamsDto`
+- [x] Task 4.2: Create `NotificationService` — `listSent` (paginated with search), `listNotificationsSettings` (user subscriptions with JSON extraction from widget builder charts)
+- [x] Task 4.3: Extend `NotificationService` — `markAsViewed`, `viewAll`, `unsubscribeUserFromNotification`
+- [x] Task 4.4: Add helper methods for Socket.IO integration — `fetchChartNotificationUsers`, `getNotificationConfig`, `saveNotificationSent` (processChartNotification deferred to Phase 4: Socket.IO)
+- [x] Task 4.5: Create `NotificationController` with 6 endpoints, Swagger decorators, PrivilegeGuard
+- [x] Task 4.6: Create `NotificationModule` — register service, controller, inject repositories
 
 ### Verification
 
