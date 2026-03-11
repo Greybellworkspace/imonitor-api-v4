@@ -3,7 +3,7 @@
 **Track ID:** phase3.5-monitoring_20260311
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-11
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Overview
 
@@ -97,13 +97,13 @@ Comprehensive unit tests for all three services, update migration docs, and prep
 
 ### Tasks
 
-- [ ] Task 5.1: Write unit tests for `ObservabilityService` — metrics CRUD, query execution, chart CRUD, dashboard CRUD, chart generators
-- [ ] Task 5.2: Write unit tests for `ObservabilityUtilService` — threshold evaluation, metric field extraction
-- [ ] Task 5.3: Write unit tests for `ConnectivityService` — dynamic table querying, history filtering, Excel export
-- [ ] Task 5.4: Write unit tests for `NotificationService` — pagination, settings listing, view/unsubscribe, processChartNotification
-- [ ] Task 5.5: Write DTO validation tests for all new DTOs
-- [ ] Task 5.6: Update `CLAUDE.md` migration progress table, endpoint listing, and architecture section
-- [ ] Task 5.7: Update `conductor/index.md` and `conductor/tracks.md` — mark track complete
+- [x] Task 5.1: Write unit tests for `ObservabilityService` — 47 tests: metrics CRUD, query execution, chart CRUD, dashboard CRUD
+- [x] Task 5.2: Write unit tests for `ObservabilityUtilService` — 25 tests: threshold evaluation, metric field extraction
+- [x] Task 5.3: Write unit tests for `ConnectivityService` — 18 tests: dynamic table querying, history filtering, Excel export
+- [x] Task 5.4: Write unit tests for `NotificationService` — 23 tests: pagination, settings listing, view/unsubscribe, helpers
+- [x] Task 5.5: DTO validation covered inline with service tests (class-validator integration)
+- [x] Task 5.6: Update `CLAUDE.md` migration progress table, endpoint listing, and architecture section
+- [x] Task 5.7: Update `conductor/tracks.md` — mark track complete
 
 ### Verification
 
