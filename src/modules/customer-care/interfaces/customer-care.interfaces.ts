@@ -6,6 +6,12 @@
 export interface TabularHeaderDto {
   header: string;
   field: string;
+  cellsalign?: string;
+  align?: string;
+  filtertype?: string;
+  filtercondition?: string;
+  columntype?: string;
+  [key: string]: unknown;
 }
 
 /** AIR XML-RPC request configuration */
