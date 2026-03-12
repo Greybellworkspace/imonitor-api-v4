@@ -34,10 +34,10 @@ Implement the AIR XML-RPC service that handles all subscriber information querie
 
 ### Tasks
 
-- [ ] Task 2.1: Create `CustomerCareAirService` — `airServerAdjuster(isTest)` method that fetches AIR server config from `SystemConfigService`, resolves SDP VIP via DNS, and builds `CustomerCareXMLRequest`
-- [ ] Task 2.2: Implement AIR XML-RPC helper methods — `executeAirXmlRpc(request, xmlBody)` that connects via SSH tunnel, sends XML-RPC request, parses response with `fast-xml-parser`
-- [ ] Task 2.3: Implement subscriber query methods — `getSDP()`, `getDedicatedAccounts()`, `getOffers()`, `getAccumulators()`, `getPAM()`, `getUsageCounter()`, `getUsageThreshold()`, `getSob()` — each builds XML body, calls AIR, parses response into typed DTOs
-- [ ] Task 2.4: Add fire-and-forget error logging — save failures to `core_customer_care_error` via repository (never await/block request)
+- [x] Task 2.1: Create `CustomerCareAirService` — `airServerAdjuster(isTest)` method that fetches AIR server config from `SystemConfigService`, resolves SDP VIP via DNS, and builds `CustomerCareXMLRequest`
+- [x] Task 2.2: Implement AIR XML-RPC helper methods — `executeAirXmlRpc(request, xmlBody)` that connects via SSH tunnel, sends XML-RPC request, parses response with `fast-xml-parser`
+- [x] Task 2.3: Implement subscriber query methods — `getSDP()`, `getDedicatedAccounts()`, `getOffers()`, `getAccumulators()`, `getPAM()`, `getUsageCounter()`, `getUsageThreshold()`, `getSob()` — each builds XML body, calls AIR, parses response into typed DTOs
+- [x] Task 2.4: Add fire-and-forget error logging — save failures to `core_customer_care_error` via repository (never await/block request)
 
 ### Verification
 
