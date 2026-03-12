@@ -223,16 +223,16 @@ describe('CustomerCareService', () => {
   });
 
   describe('getCdrHistory', () => {
-    it('should delegate directly to historyService.getCdrHistory', async () => {
+    it('should delegate directly to historyService.getCdrHistory with correct param order', async () => {
       await service.getCdrHistory('2024-01-01', '2024-01-31', '961123456');
-      expect(historyService.getCdrHistory).toHaveBeenCalledWith('2024-01-01', '2024-01-31', '961123456');
+      expect(historyService.getCdrHistory).toHaveBeenCalledWith('961123456', '2024-01-01', '2024-01-31');
     });
   });
 
   describe('exportCdrHistoryExcel', () => {
-    it('should delegate directly to historyService.exportCdrHistoryExcel', async () => {
+    it('should delegate directly to historyService.exportCdrHistoryExcel with correct param order', async () => {
       const result = await service.exportCdrHistoryExcel('2024-01-01', '2024-01-31', '961123456');
-      expect(historyService.exportCdrHistoryExcel).toHaveBeenCalledWith('2024-01-01', '2024-01-31', '961123456');
+      expect(historyService.exportCdrHistoryExcel).toHaveBeenCalledWith('961123456', '2024-01-01', '2024-01-31');
       expect(result).toBe('/tmp/cdr.xlsx');
     });
   });

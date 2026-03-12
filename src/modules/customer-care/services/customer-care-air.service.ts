@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as http from 'http';
 import * as https from 'https';
-import { promises as dnsPromises } from 'dns';
+import { Resolver } from 'dns/promises';
 import { XMLParser } from 'fast-xml-parser';
 import { SystemConfigService } from '../../../shared/services/system-config.service';
 import { DateHelperService } from '../../../shared/services/date-helper.service';
@@ -98,8 +98,9 @@ export class CustomerCareAirService {
 
     let sdpAddress = '';
     try {
-      dnsPromises.setServers([request.AIRServer]);
-      const addresses = await dnsPromises.resolve4(msisdnDns);
+      const resolver = new Resolver();
+      resolver.setServers([request.AIRServer]);
+      const addresses = await resolver.resolve4(msisdnDns);
       sdpAddress = addresses[addresses.length - 1];
     } catch (error) {
       throw new BadRequestException(ErrorMessages.CC_SDP_WRONG_NUMBER);
@@ -589,6 +590,7 @@ export class CustomerCareAirService {
       },
       httpAgent: new http.Agent({ keepAlive: true }),
       httpsAgent: new https.Agent({ keepAlive: true }),
+      timeout: 15000,
     });
 
     return this.parseXmlRpcResponse(String(res.data));

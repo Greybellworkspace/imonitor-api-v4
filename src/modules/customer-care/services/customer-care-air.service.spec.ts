@@ -8,7 +8,9 @@ import { LegacyDataDbService } from '../../../database/legacy-data-db/legacy-dat
 import { CoreCustomerCareError } from '../../../database/entities/core-customer-care-error.entity';
 import { CustomerCareXMLRequest } from '../interfaces';
 import { ErrorMessages } from '../../../shared/constants/error-messages';
-import * as dnsModule from 'dns';
+import { Resolver } from 'dns/promises';
+
+jest.mock('dns/promises');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -178,10 +180,10 @@ describe('CustomerCareAirService', () => {
     it('should throw BadRequestException when DNS resolution fails', async () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
-      // Mock dns.promises to simulate failure
-      const dnsPromises = dnsModule.promises;
-      jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
-      jest.spyOn(dnsPromises, 'resolve4').mockRejectedValue(new Error('DNS failed'));
+      (Resolver as jest.Mock).mockImplementation(() => ({
+        setServers: jest.fn(),
+        resolve4: jest.fn().mockRejectedValue(new Error('DNS failed')),
+      }));
 
       const request = makeMockRequest();
 
@@ -192,9 +194,10 @@ describe('CustomerCareAirService', () => {
     it('should return SDP info on successful DNS resolution and DB lookup', async () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
-      const dnsPromises = dnsModule.promises;
-      jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
-      jest.spyOn(dnsPromises, 'resolve4').mockResolvedValue(['192.168.1.1', '192.168.1.2']);
+      (Resolver as jest.Mock).mockImplementation(() => ({
+        setServers: jest.fn(),
+        resolve4: jest.fn().mockResolvedValue(['192.168.1.1', '192.168.1.2']),
+      }));
 
       legacyDataDbService.query.mockResolvedValue([{ sdp_id: 'SDP-01', cluster: 'ClusterA' }]);
 
@@ -211,9 +214,10 @@ describe('CustomerCareAirService', () => {
     it('should return Undefined values when DB has no matching SDP node', async () => {
       systemConfigService.getConfigValue.mockResolvedValue('234');
 
-      const dnsPromises = dnsModule.promises;
-      jest.spyOn(dnsPromises, 'setServers').mockImplementation(() => {});
-      jest.spyOn(dnsPromises, 'resolve4').mockResolvedValue(['192.168.1.1']);
+      (Resolver as jest.Mock).mockImplementation(() => ({
+        setServers: jest.fn(),
+        resolve4: jest.fn().mockResolvedValue(['192.168.1.1']),
+      }));
 
       legacyDataDbService.query.mockResolvedValue([]);
 

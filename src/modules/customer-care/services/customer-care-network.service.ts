@@ -57,6 +57,7 @@ export class CustomerCareNetworkService {
           'Content-Type': 'text/xml; charset=utf-8',
           SOAPAction: 'http://schemas.ericsson.com/cai3g1.2/Get',
         },
+        timeout: 15000,
       });
       responseData = String(response.data);
     } catch (error) {
@@ -92,6 +93,7 @@ export class CustomerCareNetworkService {
           'Content-Type': 'text/xml; charset=utf-8',
           SOAPAction: 'http://schemas.ericsson.com/cai3g1.2/Get',
         },
+        timeout: 15000,
       });
       responseData = String(response.data);
     } catch (error) {
@@ -127,6 +129,7 @@ export class CustomerCareNetworkService {
           'Content-Type': 'text/xml; charset=utf-8',
           SOAPAction: 'http://schemas.ericsson.com/cai3g1.2/Get',
         },
+        timeout: 15000,
       });
       responseData = String(response.data);
     } catch (error) {
@@ -409,7 +412,7 @@ export class CustomerCareNetworkService {
       `&noOfRecords=999` +
       `&clientTransactionId=${clientTransactionId}`;
 
-    const response = await axios.get(url, { httpsAgent: agent });
+    const response = await axios.get(url, { httpsAgent: agent, timeout: 15000 });
     return String(response.data);
   }
 

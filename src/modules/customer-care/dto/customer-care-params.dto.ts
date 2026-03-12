@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBooleanString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsBooleanString, IsOptional, Matches } from 'class-validator';
 
 /** Shared param: msisdn + test flag */
 export class CustomerCareDefaultParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 
   @ApiProperty({ description: 'Is test number (true/false)' })
@@ -19,6 +20,7 @@ export class MsisdnParamDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -37,6 +39,7 @@ export class HourlyBalanceParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -60,6 +63,7 @@ export class DaHistoryParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -78,6 +82,7 @@ export class SubscriptionHistoryParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 
   @ApiProperty({ description: 'Is test number (true/false)' })
@@ -91,6 +96,7 @@ export class MsapVasSubscriptionParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 
   @ApiProperty({ description: 'Is test number (true/false)' })
@@ -124,6 +130,7 @@ export class CdrHistoryParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -137,6 +144,7 @@ export class TraceParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -160,6 +168,7 @@ export class GetTraceParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -168,6 +177,7 @@ export class AirTraceParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 
@@ -186,6 +196,7 @@ export class GetAirTraceParamsDto {
   @ApiProperty({ description: 'Phone number (MSISDN)' })
   @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{7,15}$/, { message: 'msisdn must be 7-15 digits' })
   msisdn: string;
 }
 

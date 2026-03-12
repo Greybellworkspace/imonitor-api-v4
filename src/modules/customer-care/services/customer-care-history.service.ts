@@ -418,6 +418,7 @@ export class CustomerCareHistoryService {
           Authorization: config[SystemKeys.dsmAuthorizationKey],
         },
         httpsAgent,
+        timeout: 15000,
       });
     } catch (error) {
       this.logger.warn('shareNSellTransactionHistory error', (error as Error).message);
@@ -492,6 +493,7 @@ export class CustomerCareHistoryService {
         'X-API-KEY': httpConfig.ApiKey,
         'Content-Type': 'application/json',
       },
+      timeout: 15000,
     });
 
     return res.data as MsapApiResponse;

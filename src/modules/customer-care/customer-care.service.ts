@@ -114,11 +114,11 @@ export class CustomerCareService {
   }
 
   async getCdrHistory(fromDate: string, toDate: string, msisdn: string): Promise<CustomerCareBasicResponse> {
-    return this.historyService.getCdrHistory(fromDate, toDate, msisdn);
+    return this.historyService.getCdrHistory(msisdn, fromDate, toDate);
   }
 
   async exportCdrHistoryExcel(fromDate: string, toDate: string, msisdn: string): Promise<string> {
-    return this.historyService.exportCdrHistoryExcel(fromDate, toDate, msisdn);
+    return this.historyService.exportCdrHistoryExcel(msisdn, fromDate, toDate);
   }
 
   async getHourlyBalance(date: string, sdpvip: string, msisdn: string): Promise<CustomerCareBasicResponse> {
