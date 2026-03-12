@@ -86,11 +86,11 @@ Create the orchestrator service, controller with all 30 endpoints, and module re
 
 ### Tasks
 
-- [ ] Task 5.1: Create `CustomerCareService` (facade) — inject all 5 sub-services, delegate each method to the appropriate sub-service
-- [ ] Task 5.2: Create `CustomerCareController` with 30 GET endpoints — full Swagger decorators (@ApiTags, @ApiOperation, @ApiResponse, @ApiBearerAuth, @ApiParam), PrivilegeGuard, param DTOs with validation pipes
-- [ ] Task 5.3: Handle file download endpoints — CDR Excel export, SDP trace HTML/TXT exports, AIR trace HTML/download using appropriate NestJS response patterns (StreamableFile or file path + cleanup)
-- [ ] Task 5.4: Create `CustomerCareModule` — register all services, controller, inject repositories (CoreCustomerCareError, CoreTraceTracker), import SharedModule + LegacyDataDbModule
-- [ ] Task 5.5: Register `CustomerCareModule` in `AppModule`
+- [x] Task 5.1: Create `CustomerCareService` (facade) — inject all 5 sub-services, delegate each method to the appropriate sub-service
+- [x] Task 5.2: Create `CustomerCareController` with 31 GET endpoints — full Swagger decorators (@ApiTags, @ApiOperation, @ApiResponse, @ApiBearerAuth, @ApiParam), PrivilegeGuard, param DTOs with validation pipes
+- [x] Task 5.3: Handle file download endpoints — CDR Excel export, SDP trace HTML/TXT exports, AIR trace HTML/download using appropriate NestJS response patterns (StreamableFile or file path + cleanup)
+- [x] Task 5.4: Create `CustomerCareModule` — register all services, controller, inject repositories (CoreCustomerCareError, CoreTraceTracker), import SharedModule + LegacyDataDbModule
+- [x] Task 5.5: Register `CustomerCareModule` in `AppModule`
 
 ### Verification
 
