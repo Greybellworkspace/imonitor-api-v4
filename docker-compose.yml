@@ -29,8 +29,7 @@ services:
   redis-server:
     image: 'redis:7.0.4-alpine'
     restart: always
-    ports:
-      - '8005:6379'
+    # H-03 fix: Redis port not exposed externally — internal network only
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD:-changeme}
     networks:
       - imonitor-v4-network

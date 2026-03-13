@@ -5,11 +5,12 @@ import { CoreBillRunProcess } from '../../database/entities/core-bill-run-proces
 import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
+import * as fs from 'fs';
 import { BillRunService } from './bill-run.service';
 import { BillRunFileType, BillRunStatus } from './enums/bill-run.enum';
 
-jest.mock('fast-csv', () => ({ parse: jest.fn() }))
-jest.mock('../../shared/utils/worker.util', () => ({ runWorker: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('fast-csv', () => ({ parse: jest.fn() }));
+jest.mock('../../shared/utils/worker.util', () => ({ runWorker: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
   promises: {
@@ -20,7 +21,7 @@ jest.mock('fs', () => ({
     access: jest.fn().mockResolvedValue(undefined),
   },
   createReadStream: jest.fn(),
-}))
+}));
 
 // ─── Mock Factories ────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ describe('BillRunService', () => {
     // Re-apply defaults after clearAllMocks
     mockDateHelper.getFirstOfMonthAndDMinus1.mockReturnValue({ startDate: '20260301', endDate: '20260312' });
     mockSystemConfig.getConfigValue.mockResolvedValue(null);
-    const fsPromises = require('fs').promises as jest.Mocked<typeof import('fs').promises>;
+    const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
     (fsPromises.mkdir as jest.Mock).mockResolvedValue(undefined);
     (fsPromises.writeFile as jest.Mock).mockResolvedValue(undefined);
     (fsPromises.unlink as jest.Mock).mockResolvedValue(undefined);
@@ -156,7 +157,7 @@ describe('BillRunService', () => {
         new BadRequestException(ErrorMessages.BILLRUN_INVALID_MSISDNS),
       );
 
-      const fsPromises = require('fs').promises as jest.Mocked<typeof import('fs').promises>;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       expect(fsPromises.unlink).toHaveBeenCalled();
     });
 
@@ -221,7 +222,7 @@ describe('BillRunService', () => {
     it('should throw NotFoundException BILLRUN_FILE_NOT_FOUND when file is not on disk', async () => {
       const record = makeRecord({ status: BillRunStatus.COMPLETED });
       billRunRepo.findOne.mockResolvedValue(record);
-      const fsPromises = require('fs').promises as jest.Mocked<typeof import('fs').promises>;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       (fsPromises.access as jest.Mock).mockRejectedValue(new Error('ENOENT: no such file'));
 
       await expect(service.download(TEST_PROCESS_ID, BillRunFileType.INPUT, TEST_USER_ID)).rejects.toThrow(
@@ -252,7 +253,7 @@ describe('BillRunService', () => {
     it('should call unlink on both files and delete the record on happy path', async () => {
       const record = makeRecord({ status: BillRunStatus.COMPLETED });
       billRunRepo.findOne.mockResolvedValue(record);
-      const fsPromises = require('fs').promises as jest.Mocked<typeof import('fs').promises>;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       (fsPromises.unlink as jest.Mock).mockResolvedValue(undefined);
 
       await service.delete(TEST_PROCESS_ID, TEST_USER_ID);

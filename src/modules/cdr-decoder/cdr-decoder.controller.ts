@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -51,6 +52,7 @@ export class CdrDecoderController {
     @Body('name') name: string,
     @CurrentUser('id') userId: string,
   ): Promise<{ id: string }> {
+    if (!file) throw new BadRequestException('File is required');
     return this.cdrDecoderService.decode(file, name, userId);
   }
 

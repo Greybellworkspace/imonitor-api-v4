@@ -7,14 +7,14 @@ import { CoreCdrDecodeProcess } from '../../database/entities/core-cdr-decode-pr
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { SystemKeys } from '../../shared/constants/system-keys';
 import { ErrorMessages } from '../../shared/constants/error-messages';
-import { generateGuid } from '../../shared/helpers/common.helper';
+import { generateGuid, sanitizeDateFormat } from '../../shared/helpers/common.helper';
 import { runWorker } from '../../shared/utils/worker.util';
 import { CdrDecoderWorkDto, ListCdrDecodeDto } from './dto/cdr-decoder.dto';
 import { CDRFileType, CdrDecodeStatus, CdrFileType, CompressionType } from './enums/cdr-decoder.enum';
 
 const CDR_UPLOADS_PATH = join(process.cwd(), 'assets/cdrDecoder/uploads');
 const CDR_DECODED_PATH = join(process.cwd(), 'assets/cdrDecoder/decoded');
-const CDR_SCRIPT_PATH = join(process.cwd(), 'src/scripts/cdrDecoder.script.py');
+const CDR_SCRIPT_PATH = join(process.cwd(), 'assets/scripts/cdrDecoder.script.py');
 const CDR_WORKER_PATH = resolve(process.cwd(), 'dist/scripts/worker/cdrDecoder.worker.js');
 
 @Injectable()
@@ -28,8 +28,8 @@ export class CdrDecoderService {
   ) {}
 
   async list(currentUserId: string): Promise<ListCdrDecodeDto[]> {
-    const dateFormat = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
-    const fmt = dateFormat ?? '%Y-%m-%d %H:%i:%s';
+    const rawFmt = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
+    const fmt = sanitizeDateFormat(rawFmt);
     return this.cdrRepo
       .createQueryBuilder('p')
       .select([

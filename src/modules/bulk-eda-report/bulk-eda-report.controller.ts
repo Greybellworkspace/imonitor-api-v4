@@ -1,4 +1,15 @@
-import { Controller, Delete, Get, Param, Post, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -32,6 +43,7 @@ export class BulkEdaReportController {
   })
   @ApiResponse({ status: 200, description: 'Process created, returns process ID' })
   async uploadCSV(@UploadedFile() file: Express.Multer.File, @CurrentUser('id') userId: string): Promise<string> {
+    if (!file) throw new BadRequestException('File is required');
     return this.bulkEdaReportService.uploadCSV(userId, file);
   }
 

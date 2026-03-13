@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { promises as fsPromise } from 'fs';
 import { extname, join } from 'path';
@@ -11,7 +11,7 @@ import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { SystemKeys } from '../../shared/constants/system-keys';
-import { generateGuid, isEmptyString, isUndefinedOrNull } from '../../shared/helpers/common.helper';
+import { generateGuid, isEmptyString, sanitizeDateFormat } from '../../shared/helpers/common.helper';
 import {
   AddBulkProcessDto,
   BulkAirServerDto,
@@ -47,8 +47,9 @@ export class BulkProcessingService {
     private readonly dateHelper: DateHelperService,
   ) {}
 
-  async list(type: BulkMethodsType, currentUserId: string): Promise<ListBulkProcessDto[]> {
-    const dateFormat = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
+  async list(type: BulkMethodsType, _currentUserId: string): Promise<ListBulkProcessDto[]> {
+    const rawFmt = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
+    const fmt = sanitizeDateFormat(rawFmt);
     const qb = this.bulkProcessRepo
       .createQueryBuilder('p')
       .select([
@@ -56,9 +57,9 @@ export class BulkProcessingService {
         'p.name AS name',
         'p.status AS status',
         'p.method AS method',
-        `DATE_FORMAT(p.processingDate, '${dateFormat}') AS processingDate`,
-        `DATE_FORMAT(p.createdAt, '${dateFormat}') AS createdAt`,
-        '(SELECT u.userName FROM core_users u WHERE u.id = p.createdBy) AS createdBy',
+        `DATE_FORMAT(p.processingDate, '${fmt}') AS processingDate`,
+        `DATE_FORMAT(p.createdAt, '${fmt}') AS createdAt`,
+        '(SELECT u.userName FROM core_application_users u WHERE u.id = p.createdBy) AS createdBy',
       ])
       .where('p.type = :type', { type })
       .andWhere('p.isDeleted = 0')

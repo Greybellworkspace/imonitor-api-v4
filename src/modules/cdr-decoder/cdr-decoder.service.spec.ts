@@ -17,6 +17,7 @@ jest.mock('../../shared/utils/worker.util', () => ({
   runWorker: jest.fn().mockResolvedValue(undefined),
 }));
 
+import * as fs from 'fs';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -113,9 +114,7 @@ describe('CdrDecoderService', () => {
       const file = makeMockFile(INVALID_BUFFER, 'invalid.dat');
 
       await expect(service.decode(file, 'Test', TEST_USER_ID)).rejects.toThrow(BadRequestException);
-      await expect(service.decode(file, 'Test', TEST_USER_ID)).rejects.toThrow(
-        ErrorMessages.CDR_INVALID_FILE_FORMAT,
-      );
+      await expect(service.decode(file, 'Test', TEST_USER_ID)).rejects.toThrow(ErrorMessages.CDR_INVALID_FILE_FORMAT);
     });
 
     it('should create a PROCESSING record and return an id for a gzip file', async () => {
@@ -151,7 +150,7 @@ describe('CdrDecoderService', () => {
 
     it('should write the uploaded file to disk before saving the record', async () => {
       const file = makeMockFile(GZIP_BUFFER, 'test.gz');
-      const fsPromises = require('fs').promises;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
 
       await service.decode(file, 'Job', TEST_USER_ID);
 
@@ -216,7 +215,7 @@ describe('CdrDecoderService', () => {
     });
 
     it('should throw NotFoundException when file is not accessible on disk', async () => {
-      const fsPromises = require('fs').promises;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       fsPromises.access.mockRejectedValue(new Error('ENOENT'));
 
       cdrRepo.findOne.mockResolvedValue({
@@ -237,9 +236,7 @@ describe('CdrDecoderService', () => {
       cdrRepo.findOne.mockResolvedValue(null);
 
       await expect(service.delete(TEST_PROCESS_ID, TEST_USER_ID)).rejects.toThrow(NotFoundException);
-      await expect(service.delete(TEST_PROCESS_ID, TEST_USER_ID)).rejects.toThrow(
-        ErrorMessages.CDR_PROCESS_NOT_FOUND,
-      );
+      await expect(service.delete(TEST_PROCESS_ID, TEST_USER_ID)).rejects.toThrow(ErrorMessages.CDR_PROCESS_NOT_FOUND);
     });
 
     it('should throw BadRequestException when status is PROCESSING', async () => {
@@ -259,7 +256,7 @@ describe('CdrDecoderService', () => {
     it('should unlink both files and delete the record on happy path', async () => {
       const originalPath = '/uploads/file.gz';
       const decodedPath = '/decoded/file.json.gz';
-      const fsPromises = require('fs').promises;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
 
       cdrRepo.findOne.mockResolvedValue({
         id: TEST_PROCESS_ID,
@@ -276,7 +273,7 @@ describe('CdrDecoderService', () => {
     });
 
     it('should still delete the record even when file unlink fails', async () => {
-      const fsPromises = require('fs').promises;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       fsPromises.unlink.mockRejectedValueOnce(new Error('ENOENT'));
 
       cdrRepo.findOne.mockResolvedValue({

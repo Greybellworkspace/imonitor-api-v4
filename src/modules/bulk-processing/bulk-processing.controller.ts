@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,12 +28,7 @@ import { Response } from 'express';
 import { PrivilegeGuard } from '../../auth/guards/privilege.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { BulkProcessingService } from './bulk-processing.service';
-import {
-  AddBulkProcessDto,
-  BulkListQueryDto,
-  ScheduleBulkProcessDto,
-  UpdateBulkProcessDto,
-} from './dto/bulk-processing.dto';
+import { BulkListQueryDto, UpdateBulkProcessDto } from './dto/bulk-processing.dto';
 
 @ApiTags('Bulk Processing')
 @ApiBearerAuth()
@@ -48,6 +44,7 @@ export class BulkProcessingController {
   @ApiBody({ schema: { type: 'object', properties: { document: { type: 'string', format: 'binary' } } } })
   @ApiResponse({ status: 200, description: 'Upload accepted' })
   async uploadBalance(@UploadedFile() file: Express.Multer.File): Promise<void> {
+    if (!file) throw new BadRequestException('File is required');
     return this.bulkProcessingService.bulkChargingCsv(file);
   }
 
@@ -72,6 +69,7 @@ export class BulkProcessingController {
     @Body('methodId') methodId: number,
     @CurrentUser('id') userId: string,
   ): Promise<void> {
+    if (!file) throw new BadRequestException('File is required');
     return this.bulkProcessingService.add(file, { name, methodId: Number(methodId) }, userId);
   }
 
@@ -98,6 +96,7 @@ export class BulkProcessingController {
     @Body('date') date: string,
     @CurrentUser('id') userId: string,
   ): Promise<void> {
+    if (!file) throw new BadRequestException('File is required');
     return this.bulkProcessingService.schedule(file, { name, methodId: Number(methodId), date }, userId);
   }
 
@@ -144,7 +143,7 @@ export class BulkProcessingController {
     @CurrentUser('id') userId: string,
   ): Promise<void> {
     if (dto.id !== id) {
-      throw new Error('ID mismatch');
+      throw new BadRequestException('ID mismatch');
     }
     return this.bulkProcessingService.update(dto, userId);
   }

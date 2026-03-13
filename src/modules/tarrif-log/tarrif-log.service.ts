@@ -10,7 +10,7 @@ import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { SystemKeys } from '../../shared/constants/system-keys';
 import { ErrorMessages } from '../../shared/constants/error-messages';
-import { fileExists, generateGuid, isUndefinedOrNull } from '../../shared/helpers/common.helper';
+import { fileExists, generateGuid, isUndefinedOrNull, sanitizeDateFormat } from '../../shared/helpers/common.helper';
 import { TarrifProcessStatus } from './enums/tarrif-process.enum';
 import { ListTarrifLogDto, TarrifLogDto, TarrifTypeDto } from './dto/tarrif-log.dto';
 
@@ -30,8 +30,8 @@ export class TarrifLogService {
   ) {}
 
   async list(): Promise<ListTarrifLogDto[]> {
-    const dateFormat = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
-    const fmt = dateFormat ?? '%Y-%m-%d %H:%i:%s';
+    const rawFmt = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
+    const fmt = sanitizeDateFormat(rawFmt);
 
     return this.tarrifProcessRepo
       .createQueryBuilder('p')
@@ -41,11 +41,12 @@ export class TarrifLogService {
         `DATE_FORMAT(p.compareDate, '${fmt}') AS date`,
         `DATE_FORMAT(p.compareToDate, '${fmt}') AS compareDate`,
         `DATE_FORMAT(p.createdAt, '${fmt}') AS createdAt`,
-        `IFNULL((SELECT sc_name FROM V3_service_classes WHERE sc_code = p.serviceClassId), 'Not Found') AS tarrif`,
+        // A-C-01 fix: V3_service_classes lives in the data DB — use fully-qualified DB prefix
+        `IFNULL((SELECT sc_name FROM \`${process.env.DB_DATA_NAME ?? 'iMonitorData'}\`.\`V3_service_classes\` WHERE sc_code = p.serviceClassId), 'Not Found') AS tarrif`,
         '(SELECT u.userName FROM core_application_users u WHERE u.id = p.createdBy) AS createdBy',
       ])
       .where('p.isDeleted = 0')
-      .orderBy('p.createdBy', 'DESC')
+      .orderBy('p.createdAt', 'DESC')
       .getRawMany<ListTarrifLogDto>();
   }
 
@@ -165,7 +166,7 @@ export class TarrifLogService {
     const key = config[SystemKeys.tarrifProcessKey];
 
     return axios
-      .get<{ status: number; message: string }>(url, { headers: { access_token: key } })
+      .get<{ status: number; message: string }>(url, { headers: { access_token: key }, timeout: 30_000 })
       .then((r) => r.data)
       .catch((err) => {
         if (err.response) return err.response.data as { status: number; message: string };
@@ -182,7 +183,7 @@ export class TarrifLogService {
     const key = config[SystemKeys.tarrifProcessKey];
 
     return axios
-      .get<{ status: number; message: string }>(url, { headers: { access_token: key } })
+      .get<{ status: number; message: string }>(url, { headers: { access_token: key }, timeout: 30_000 })
       .then((r) => r.data)
       .catch((err) => {
         if (err.response) return err.response.data as { status: number; message: string };

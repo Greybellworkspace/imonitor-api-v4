@@ -1263,6 +1263,10 @@ This gives decoupling benefits without CQRS overhead.
 | 3.8 | `migration/phase-3.8-automation-admin` | AutomatedReport, AuditLog, Utility, Deployment |
 | 3.9 | `migration/phase-3.9-background-jobs` | Scheduler, Worker modules |
 
+#### Tech Debt — Phase 3.8 pre-work
+
+- **Env centralization**: Replace all `process.env.X \|\| 'fallback'` direct accesses in main-thread services with `ConfigService.get()`. Add missing vars (`DB_DATA_NAME`) to `env.validation.ts` with proper Joi defaults. Worker scripts (`cdrDecoder.worker.ts`, `billRun.worker.ts`) are exempt — `process.env` is correct there since NestJS DI is unavailable in `worker_threads`.
+
 ### Phase 4: Socket.IO Robustness
 **Branch:** `migration/phase-4-socketio`
 

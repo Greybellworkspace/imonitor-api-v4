@@ -12,7 +12,7 @@ import { DateHelperService } from '../../shared/services/date-helper.service';
 import { SystemConfigService } from '../../shared/services/system-config.service';
 import { ErrorMessages } from '../../shared/constants/error-messages';
 import { SystemKeys } from '../../shared/constants/system-keys';
-import { generateGuid, isUndefinedOrNull } from '../../shared/helpers/common.helper';
+import { generateGuid, isUndefinedOrNull, sanitizeDateFormat } from '../../shared/helpers/common.helper';
 import { BulkProcessFileType } from '../bulk-processing/enums/bulk-process.enum';
 import { ListBulkEdaDTO } from './dto/bulk-eda-report.dto';
 
@@ -30,8 +30,8 @@ export class BulkEdaReportService {
   ) {}
 
   async list(): Promise<ListBulkEdaDTO[]> {
-    const dateFormat = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
-    const fmt = dateFormat ?? '%Y-%m-%d %H:%i:%s';
+    const rawFmt = await this.systemConfig.getConfigValue(SystemKeys.dateFormat1);
+    const fmt = sanitizeDateFormat(rawFmt);
     return this.bulkEdaRepo
       .createQueryBuilder('p')
       .select([

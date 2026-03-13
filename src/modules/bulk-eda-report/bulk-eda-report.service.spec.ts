@@ -33,6 +33,8 @@ jest.mock('exceljs', () => ({
   })),
 }));
 
+import * as fs from 'fs';
+import * as fastCsv from 'fast-csv';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -150,11 +152,11 @@ describe('BulkEdaReportService', () => {
       const rows = [{ phoneNumber: '70000000' }];
       jest.spyOn(service as any, 'readCsv').mockResolvedValue(rows);
 
-      const createReadStream = require('fs').createReadStream;
-      const parse = require('fast-csv').parse;
+      const createReadStream = fs.createReadStream as jest.Mock;
+      const parse = fastCsv.parse as jest.Mock;
       const mockStream = {
         pipe: jest.fn().mockReturnThis(),
-        on: jest.fn().mockImplementation(function (this: any, event: string, handler: Function) {
+        on: jest.fn().mockImplementation(function (this: any, event: string, handler: (...args: unknown[]) => unknown) {
           if (event === 'end') handler();
           return this;
         }),
@@ -176,11 +178,11 @@ describe('BulkEdaReportService', () => {
       const rows = [{ phoneNumber: '70000001' }];
       jest.spyOn(service as any, 'readCsv').mockResolvedValue(rows);
 
-      const createReadStream = require('fs').createReadStream;
-      const parse = require('fast-csv').parse;
+      const createReadStream = fs.createReadStream as jest.Mock;
+      const parse = fastCsv.parse as jest.Mock;
       const mockStream = {
         pipe: jest.fn().mockReturnThis(),
-        on: jest.fn().mockImplementation(function (this: any, event: string, handler: Function) {
+        on: jest.fn().mockImplementation(function (this: any, event: string, handler: (...args: unknown[]) => unknown) {
           if (event === 'end') handler();
           return this;
         }),
@@ -296,7 +298,7 @@ describe('BulkEdaReportService', () => {
     });
 
     it('should still delete record even when input file does not exist on disk', async () => {
-      const fsPromises = require('fs').promises;
+      const fsPromises = fs.promises as jest.Mocked<typeof fs.promises>;
       fsPromises.unlink.mockRejectedValueOnce(new Error('ENOENT'));
 
       bulkEdaRepo.findOne.mockResolvedValue({

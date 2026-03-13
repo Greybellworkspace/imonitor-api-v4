@@ -95,6 +95,17 @@ export function timeOut(ms: number): Promise<void> {
 }
 
 /**
+ * Sanitizes a MySQL DATE_FORMAT format string against a whitelist of safe characters.
+ * Rejects any string containing quotes, semicolons, or other SQL-sensitive chars.
+ * Returns `fallback` when the input is absent or fails validation.
+ */
+export function sanitizeDateFormat(fmt: string | null | undefined, fallback = '%Y-%m-%d %H:%i:%s'): string {
+  if (!fmt) return fallback;
+  // Allow only: %, letters, digits, dash, slash, colon, space, underscore, dot
+  return /^[%a-zA-Z0-9\-/:. _]+$/.test(fmt) ? fmt : fallback;
+}
+
+/**
  * Format MSISDN: strip leading +, 0, spaces, and country code prefix.
  * Mirrors v3 msisdnFormater() logic exactly.
  * @param msisdn Raw phone number input

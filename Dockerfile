@@ -46,6 +46,10 @@ RUN npm ci --omit=dev
 # Copy built application from builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Copy Python CDR decoder script into the assets directory the service expects
+RUN mkdir -p assets/scripts
+COPY src/scripts/cdrDecoder.script.py ./assets/scripts/
+
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 RUN mkdir -p logs && chown -R appuser:appgroup logs

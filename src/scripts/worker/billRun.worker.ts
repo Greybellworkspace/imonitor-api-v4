@@ -18,19 +18,31 @@ async function getPool(): Promise<mysql.Pool> {
     port: Number(process.env.DB_PORT ?? 3306),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: 'iMonitorV3_1',
+    database: process.env.coreDbName ?? 'iMonitorV3_1',
     connectionLimit: 2,
   });
 }
+
+const ALLOWED_UPDATE_COLUMNS = new Set([
+  'startedAt',
+  'processId',
+  'status',
+  'cdrRecordCount',
+  'daRecordCount',
+  'finishedAt',
+  'errorMessage',
+]);
 
 async function updateProcess(
   pool: mysql.Pool,
   id: string,
   data: Record<string, string | number | null>,
 ): Promise<void> {
-  const fields = Object.keys(data)
-    .map((k) => `${k} = ?`)
-    .join(', ');
+  const keys = Object.keys(data);
+  for (const k of keys) {
+    if (!ALLOWED_UPDATE_COLUMNS.has(k)) throw new Error(`Disallowed column in updateProcess: ${k}`);
+  }
+  const fields = keys.map((k) => `${k} = ?`).join(', ');
   const values = Object.values(data);
   await pool.execute(`UPDATE core_bill_run_process SET ${fields} WHERE id = ?`, [...values, id]);
 }

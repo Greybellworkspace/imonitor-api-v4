@@ -7,7 +7,7 @@
  * Phase 3.9 note: full Python execution wired here; worker_threads pattern matches v3.
  */
 import JSZip from 'jszip';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { createGzip } from 'zlib';
 import { pipeline } from 'stream/promises';
 import { createReadStream, createWriteStream, promises as fsPromise } from 'fs';
@@ -18,7 +18,7 @@ import mysql from 'mysql2/promise';
 import { CdrDecoderWorkDto } from '../../modules/cdr-decoder/dto/cdr-decoder.dto';
 import { CompressionType } from '../../modules/cdr-decoder/enums/cdr-decoder.enum';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 async function getPool() {
   return mysql.createPool({
@@ -26,19 +26,30 @@ async function getPool() {
     port: Number(process.env.DB_PORT ?? 3306),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: 'iMonitorV3_1',
+    database: process.env.coreDbName ?? 'iMonitorV3_1',
     connectionLimit: 2,
   });
 }
+
+const ALLOWED_UPDATE_COLUMNS = new Set([
+  'startedAt',
+  'processId',
+  'status',
+  'recordCount',
+  'finishedAt',
+  'errorMessage',
+]);
 
 async function updateProcess(
   pool: mysql.Pool,
   id: string,
   data: Record<string, string | number | null>,
 ): Promise<void> {
-  const fields = Object.keys(data)
-    .map((k) => `${k} = ?`)
-    .join(', ');
+  const keys = Object.keys(data);
+  for (const k of keys) {
+    if (!ALLOWED_UPDATE_COLUMNS.has(k)) throw new Error(`Disallowed column in updateProcess: ${k}`);
+  }
+  const fields = keys.map((k) => `${k} = ?`).join(', ');
   const values = Object.values(data);
   await pool.execute(`UPDATE core_decode_process SET ${fields} WHERE id = ?`, [...values, id]);
 }
@@ -66,8 +77,8 @@ async function execute(data: CdrDecoderWorkDto): Promise<void> {
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
     await updateProcess(pool, id, { startedAt: now, processId: process.pid });
 
-    const command = `python3 "${scriptPath}" "${originalFilePath}"`;
-    await execAsync(command);
+    // C-01 fix: use execFile instead of exec to avoid shell injection
+    await execFileAsync('python3', [scriptPath, originalFilePath]);
 
     const scriptOutputPath = originalFilePath.replace(/(\.[^.]+)?$/, '_decoded.json');
     const decodedContent = await fsPromise.readFile(scriptOutputPath, 'utf-8');
