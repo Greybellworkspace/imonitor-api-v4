@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DashboardGateway } from './dashboard.gateway';
 import { RedisSocketStateService } from '../redis-socket-state.service';
@@ -13,6 +14,7 @@ describe('DashboardGateway', () => {
   let gateway: DashboardGateway;
 
   const mockJwtService = { verify: jest.fn() };
+  const mockConfigService = { get: jest.fn().mockReturnValue('iMonitorData') };
   const mockWidgetBuilderService = { generateChartByType: jest.fn() };
   const mockRedisState = {
     del: jest.fn(),
@@ -44,6 +46,7 @@ describe('DashboardGateway', () => {
       providers: [
         DashboardGateway,
         { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
         { provide: WidgetBuilderService, useValue: mockWidgetBuilderService },
         { provide: RedisSocketStateService, useValue: mockRedisState },
         { provide: LegacyDataDbService, useValue: mockLegacyDataDb },

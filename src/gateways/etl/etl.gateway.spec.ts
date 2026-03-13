@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EtlGateway } from './etl.gateway';
 import { DashboardGateway } from '../dashboard/dashboard.gateway';
@@ -11,6 +12,8 @@ import type { Socket } from 'socket.io';
 
 describe('EtlGateway', () => {
   let gateway: EtlGateway;
+
+  const mockConfigService = { get: jest.fn().mockReturnValue('test-etl-api-key') };
 
   const mockDashboardServer = {
     to: jest.fn().mockReturnValue({ emit: jest.fn() }),
@@ -49,6 +52,7 @@ describe('EtlGateway', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EtlGateway,
+        { provide: ConfigService, useValue: mockConfigService },
         { provide: DashboardGateway, useValue: mockDashboardGateway },
         { provide: ConnectivityGateway, useValue: mockConnectivityGateway },
         { provide: WidgetBuilderService, useValue: mockWidgetBuilderService },

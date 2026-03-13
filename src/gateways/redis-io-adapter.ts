@@ -18,13 +18,15 @@ import Redis from 'ioredis';
  */
 export class RedisIoAdapter extends IoAdapter {
   private adapterConstructor!: ReturnType<typeof createAdapter>;
+  private corsOrigin?: string;
   private readonly logger = new Logger(RedisIoAdapter.name);
 
   /**
    * Creates Redis pub/sub clients, attaches error listeners, and builds the
    * Socket.IO Redis adapter constructor.
    */
-  async connectToRedis(host: string, port: number, password?: string): Promise<void> {
+  async connectToRedis(host: string, port: number, password?: string, corsOrigin?: string): Promise<void> {
+    this.corsOrigin = corsOrigin;
     const pubClient = new Redis({ host, port, password: password || undefined });
     const subClient = pubClient.duplicate();
 
@@ -40,9 +42,17 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   createIOServer(port: number, options?: ServerOptions): Server {
+    const corsOptions = this.corsOrigin
+      ? {
+          origin: this.corsOrigin === '*' ? true : this.corsOrigin.split(',').map((o) => o.trim()),
+          credentials: true,
+        }
+      : false;
+
     const server = super.createIOServer(port, {
       ...(options ?? {}),
       transports: ['websocket'],
+      cors: corsOptions,
     }) as Server;
 
     server.adapter(this.adapterConstructor);

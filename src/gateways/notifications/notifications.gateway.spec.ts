@@ -22,17 +22,14 @@ describe('NotificationsGateway', () => {
     in: jest.fn().mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([]) }),
   };
 
-  function buildClient(
-    id = 'notif-socket-1',
-    queryId?: string,
-  ): Partial<Socket> & { emit: jest.Mock; join: jest.Mock } {
+  function buildClient(id = 'notif-socket-1', userId?: string): Partial<Socket> & { emit: jest.Mock; join: jest.Mock } {
     return {
       id,
       handshake: {
         auth: {},
-        query: queryId ? { id: queryId } : {},
+        query: {},
       } as unknown as Socket['handshake'],
-      data: {},
+      data: userId ? { user: { id: userId } } : {},
       emit: jest.fn(),
       join: jest.fn(),
     };
@@ -68,7 +65,7 @@ describe('NotificationsGateway', () => {
       expect(mockRedisState.set).toHaveBeenCalledWith('notifications:s1', JSON.stringify({ s1: 'user-123' }));
     });
 
-    it('should not call redisState.set when query.id is absent', () => {
+    it('should not call redisState.set when userId is absent', () => {
       const client = buildClient('s1');
       gateway.handleConnection(client as unknown as Socket);
       expect(mockRedisState.set).not.toHaveBeenCalled();
