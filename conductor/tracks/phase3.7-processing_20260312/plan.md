@@ -42,19 +42,19 @@ Create the two missing TypeORM entities, all enums, all DTOs, and verify existin
 
 ### Tasks
 
-- [ ] Task 2.1: Create `BulkProcessingService` — inject `CoreBulkProcess`, `CoreBulkProcessMethod`, `CoreBulkProcessFailure` repos + `SystemConfigService` + `DateHelperService`; implement `list(type, userId)`, `listMethods(type, userId)`, `listAirs()`, `download(id, type)`, `delete(id, userId)` as TypeORM queries
-- [ ] Task 2.2: Implement `bulkChargingCsv(file)` — parse CSV, validate rows, fire charging worker; preserve v3 error messages
-- [ ] Task 2.3: Implement `add(file, dto, userId)` and `schedule(file, dto, userId)` — save file to `assets/bulk/`, insert `CoreBulkProcess` record, fire `bulkProcess.worker.ts` via `worker_threads`
-- [ ] Task 2.4: Implement `update(dto, userId)` — update `CoreBulkProcess` with id mismatch guard (preserve v3 `ForbiddenError` check)
-- [ ] Task 2.5: Create worker stub `src/scripts/worker/bulkProcess.worker.ts` — receives work payload, executes job, updates `CoreBulkProcess` status to `COMPLETED`/`FAILED` via direct DB query on finish
-- [ ] Task 2.6: Create `BulkProcessingController` — 9 endpoints, `@UseGuards(PrivilegeGuard)`, `@UseInterceptors(FileInterceptor)` on upload endpoints, full Swagger (`@ApiTags('Bulk Processing')`, `@ApiConsumes('multipart/form-data')` on file endpoints, `@ApiOperation`, `@ApiResponse`, `@ApiBearerAuth`)
-- [ ] Task 2.7: Create `BulkProcessingModule` — register service + controller + repos; import `SharedModule`, `TypeOrmModule.forFeature([CoreBulkProcess, CoreBulkProcessMethod, CoreBulkProcessFailure])`
+- [x] Task 2.1: Create `BulkProcessingService` — inject `CoreBulkProcess`, `CoreBulkProcessMethod`, `CoreBulkProcessFailure` repos + `SystemConfigService` + `DateHelperService`; implement `list(type, userId)`, `listMethods(type, userId)`, `listAirs()`, `download(id, type)`, `delete(id, userId)` as TypeORM queries
+- [x] Task 2.2: Implement `bulkChargingCsv(file)` — parse CSV, validate rows, fire charging worker; preserve v3 error messages
+- [x] Task 2.3: Implement `add(file, dto, userId)` and `schedule(file, dto, userId)` — save file to `assets/bulk/`, insert `CoreBulkProcess` record, fire `bulkProcess.worker.ts` via `worker_threads`
+- [x] Task 2.4: Implement `update(dto, userId)` — update `CoreBulkProcess` with id mismatch guard (preserve v3 `ForbiddenError` check)
+- [x] Task 2.5: Create worker stub `src/scripts/worker/bulkProcess.worker.ts` — receives work payload, executes job, updates `CoreBulkProcess` status to `COMPLETED`/`FAILED` via direct DB query on finish
+- [x] Task 2.6: Create `BulkProcessingController` — 9 endpoints, `@UseGuards(PrivilegeGuard)`, `@UseInterceptors(FileInterceptor)` on upload endpoints, full Swagger (`@ApiTags('Bulk Processing')`, `@ApiConsumes('multipart/form-data')` on file endpoints, `@ApiOperation`, `@ApiResponse`, `@ApiBearerAuth`)
+- [x] Task 2.7: Create `BulkProcessingModule` — register service + controller + repos; import `SharedModule`, `TypeOrmModule.forFeature([CoreBulkProcess, CoreBulkProcessMethod, CoreBulkProcessFailure])`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Module registered in `AppModule`
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Module registered in `AppModule`
 
 ---
 
