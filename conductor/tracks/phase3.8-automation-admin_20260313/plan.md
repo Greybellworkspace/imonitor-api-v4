@@ -19,8 +19,8 @@ Entities already exist — focus is service + controller + DTOs.
 
 ### Tasks
 
-- [ ] Task 1.1: Create branch `migration/phase-3.8-automation-admin` from main
-- [ ] Task 1.2: DTOs — `SaveAutomatedReportDto`, `UpdateAutomatedReportDto`, `AutomatedReportDto`, `ListAutomatedReportDto` with class-validator + @ApiProperty
+- [x] Task 1.1: Create branch `migration/phase-3.8-automation-admin` from main
+- [x] Task 1.2: DTOs — `SaveAutomatedReportDto`, `UpdateAutomatedReportDto`, `AutomatedReportDto`, `ListAutomatedReportDto` with class-validator + @ApiProperty
 - [ ] Task 1.3: `AutomatedReportService` — `create()`, `update()`, `delete()`, `toggleStatus()`, `listByUser()`, `listByReportId()`, `getById()` (with SFTP password decryption)
 - [ ] Task 1.4: `AutomatedReportController` — all 7 endpoints with Swagger, JWT + PrivilegeGuard
 - [ ] Task 1.5: `AutomatedReportModule` — wire entities (4), service, controller; register in `AppModule`
