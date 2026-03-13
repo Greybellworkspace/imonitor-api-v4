@@ -1,0 +1,19 @@
+{
+  "id": "phase3.9-background-jobs_20260313",
+  "title": "Phase 3.9 — Background Jobs (Scheduler + Worker Scripts)",
+  "type": "feature",
+  "status": "in_progress",
+  "created": "2026-03-13T00:00:00Z",
+  "updated": "2026-03-13T01:00:00Z",
+  "current_phase": 1,
+  "current_task": "1.1",
+  "phases": {
+    "total": 4,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 20,
+    "completed": 0
+  },
+  "commits": []
+}

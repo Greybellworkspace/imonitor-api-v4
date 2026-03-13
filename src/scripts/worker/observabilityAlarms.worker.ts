@@ -235,8 +235,7 @@ async function execute(): Promise<void> {
 
         if (breached) {
           // Check duration constraint and repeat flag
-          const shouldFire =
-            !alert.isActivated || (alert.isRepeat === 1 && isDurationElapsed(alert));
+          const shouldFire = !alert.isActivated || (alert.isRepeat === 1 && isDurationElapsed(alert));
 
           if (shouldFire) {
             // Send notifications

@@ -81,34 +81,35 @@ export class SchedulerService implements OnModuleInit {
       const processId = uuidv4();
       await this.automatedReportRepo.update({ id: ar.id }, { processId });
 
-      this.forkWorker('automatedReport.worker.js', {
-        id: ar.id,
-        reportId: ar.reportId,
-        ownerId: ar.ownerId,
-        title: ar.title,
-        timeFilter: ar.timeFilter,
-        method: ar.method,
-        exportType: ar.exportType,
-        reportHourInterval: ar.reportHourInterval,
-        reportDayInterval: ar.reportDayInterval,
-        relativeHour: ar.relativeHour,
-        relativeDay: ar.relativeDay,
-        emailSubject: ar.emailSubject ?? '',
-        emailDescription: ar.emailDescription ?? '',
-      }, {
-        onSuccess: async () => {
-          await this.automatedReportRepo.update(
-            { id: ar.id },
-            { processId: null, lastRunDate: new Date(), errorStack: null, errorOn: null },
-          );
+      this.forkWorker(
+        'automatedReport.worker.js',
+        {
+          id: ar.id,
+          reportId: ar.reportId,
+          ownerId: ar.ownerId,
+          title: ar.title,
+          timeFilter: ar.timeFilter,
+          method: ar.method,
+          exportType: ar.exportType,
+          reportHourInterval: ar.reportHourInterval,
+          reportDayInterval: ar.reportDayInterval,
+          relativeHour: ar.relativeHour,
+          relativeDay: ar.relativeDay,
+          emailSubject: ar.emailSubject ?? '',
+          emailDescription: ar.emailDescription ?? '',
         },
-        onError: async (errorStack: string) => {
-          await this.automatedReportRepo.update(
-            { id: ar.id },
-            { processId: null, errorStack, errorOn: new Date() },
-          );
+        {
+          onSuccess: async () => {
+            await this.automatedReportRepo.update(
+              { id: ar.id },
+              { processId: null, lastRunDate: new Date(), errorStack: null, errorOn: null },
+            );
+          },
+          onError: async (errorStack: string) => {
+            await this.automatedReportRepo.update({ id: ar.id }, { processId: null, errorStack, errorOn: new Date() });
+          },
         },
-      });
+      );
     }
   }
 
@@ -122,19 +123,28 @@ export class SchedulerService implements OnModuleInit {
     const retentionDays = retentionDaysStr ? parseInt(retentionDaysStr, 10) : 30;
     const processId = uuidv4();
 
-    this.forkWorker('automatedReportRetentionCleaning.worker.js', { retentionDays, processId }, {
-      onSuccess: async (msg: Record<string, unknown>) => {
-        const nbOfDeletedFiles = typeof msg.deleted === 'number' ? msg.deleted : 0;
-        const record = this.arCleaningRepo.create({ processId, runDate: new Date(), nbOfDeletedFiles });
-        await this.arCleaningRepo.save(record);
-        this.logger.log(`AR retention cleaning done — deleted ${nbOfDeletedFiles} files`);
+    this.forkWorker(
+      'automatedReportRetentionCleaning.worker.js',
+      { retentionDays, processId },
+      {
+        onSuccess: async (msg: Record<string, unknown>) => {
+          const nbOfDeletedFiles = typeof msg.deleted === 'number' ? msg.deleted : 0;
+          const record = this.arCleaningRepo.create({ processId, runDate: new Date(), nbOfDeletedFiles });
+          await this.arCleaningRepo.save(record);
+          this.logger.log(`AR retention cleaning done — deleted ${nbOfDeletedFiles} files`);
+        },
+        onError: async (errorStack: string) => {
+          const record = this.arCleaningRepo.create({
+            processId,
+            runDate: new Date(),
+            errorStack,
+            errorOn: new Date(),
+          });
+          await this.arCleaningRepo.save(record);
+          this.logger.error('AR retention cleaning failed', errorStack);
+        },
       },
-      onError: async (errorStack: string) => {
-        const record = this.arCleaningRepo.create({ processId, runDate: new Date(), errorStack, errorOn: new Date() });
-        await this.arCleaningRepo.save(record);
-        this.logger.error('AR retention cleaning failed', errorStack);
-      },
-    });
+    );
   }
 
   // ─── Cron Job: Scheduled Bulk Process ────────────────────────────────────────
@@ -143,14 +153,18 @@ export class SchedulerService implements OnModuleInit {
   runScheduledBulkProcess(): void {
     if (isTestEnv()) return;
 
-    this.forkWorker('scheduledBulkProcess.worker.js', {}, {
-      onSuccess: async (msg: Record<string, unknown>) => {
-        this.logger.log(`Scheduled bulk process done — processed: ${msg.processed ?? 0}`);
+    this.forkWorker(
+      'scheduledBulkProcess.worker.js',
+      {},
+      {
+        onSuccess: async (msg: Record<string, unknown>) => {
+          this.logger.log(`Scheduled bulk process done — processed: ${msg.processed ?? 0}`);
+        },
+        onError: async (errorStack: string) => {
+          this.logger.error('Scheduled bulk process worker error', errorStack);
+        },
       },
-      onError: async (errorStack: string) => {
-        this.logger.error('Scheduled bulk process worker error', errorStack);
-      },
-    });
+    );
   }
 
   // ─── Cron Job: Request Archive Cleanup (dynamic) ─────────────────────────────
@@ -158,14 +172,18 @@ export class SchedulerService implements OnModuleInit {
   async runRequestArchiveCleanup(): Promise<void> {
     if (isTestEnv()) return;
 
-    this.forkWorker('requestArchiveCleanup.worker.js', {}, {
-      onSuccess: async (msg: Record<string, unknown>) => {
-        this.logger.log(`Request archive cleanup done — deleted ${msg.deleted ?? 0} files`);
+    this.forkWorker(
+      'requestArchiveCleanup.worker.js',
+      {},
+      {
+        onSuccess: async (msg: Record<string, unknown>) => {
+          this.logger.log(`Request archive cleanup done — deleted ${msg.deleted ?? 0} files`);
+        },
+        onError: async (errorStack: string) => {
+          this.logger.error('Request archive cleanup worker error', errorStack);
+        },
       },
-      onError: async (errorStack: string) => {
-        this.logger.error('Request archive cleanup worker error', errorStack);
-      },
-    });
+    );
   }
 
   // ─── Cron Job: Request Archive DB Retention ──────────────────────────────────
@@ -174,14 +192,18 @@ export class SchedulerService implements OnModuleInit {
   runRequestArchiveRetention(): void {
     if (isTestEnv()) return;
 
-    this.forkWorker('databaseRetentionCleanup.worker.js', {}, {
-      onSuccess: async (msg: Record<string, unknown>) => {
-        this.logger.log(`DB retention cleanup done — deleted ${msg.deleted ?? 0} rows`);
+    this.forkWorker(
+      'databaseRetentionCleanup.worker.js',
+      {},
+      {
+        onSuccess: async (msg: Record<string, unknown>) => {
+          this.logger.log(`DB retention cleanup done — deleted ${msg.deleted ?? 0} rows`);
+        },
+        onError: async (errorStack: string) => {
+          this.logger.error('DB retention cleanup worker error', errorStack);
+        },
       },
-      onError: async (errorStack: string) => {
-        this.logger.error('DB retention cleanup worker error', errorStack);
-      },
-    });
+    );
   }
 
   // ─── Cron Job: Observability Alarms ──────────────────────────────────────────
@@ -190,14 +212,18 @@ export class SchedulerService implements OnModuleInit {
   runObservabilityAlarms(): void {
     if (isTestEnv()) return;
 
-    this.forkWorker('observabilityAlarms.worker.js', {}, {
-      onSuccess: async () => {
-        this.logger.debug('Observability alarms cycle complete');
+    this.forkWorker(
+      'observabilityAlarms.worker.js',
+      {},
+      {
+        onSuccess: async () => {
+          this.logger.debug('Observability alarms cycle complete');
+        },
+        onError: async (errorStack: string) => {
+          this.logger.error('Observability alarms worker error', errorStack);
+        },
       },
-      onError: async (errorStack: string) => {
-        this.logger.error('Observability alarms worker error', errorStack);
-      },
-    });
+    );
   }
 
   // ─── Worker Fork Helper ───────────────────────────────────────────────────────

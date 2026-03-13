@@ -39,10 +39,9 @@ async function execute(): Promise<number> {
     const pending = rows as BulkProcessRow[];
 
     for (const proc of pending) {
-      await pool.execute(
-        `UPDATE core_bulk_process SET status = 'processing', updatedAt = NOW() WHERE id = ?`,
-        [proc.id],
-      );
+      await pool.execute(`UPDATE core_bulk_process SET status = 'processing', updatedAt = NOW() WHERE id = ?`, [
+        proc.id,
+      ]);
 
       // Note: actual XML-RPC / SOAP processing to be handled by bulkProcess.worker.ts
       // For now, mark as failed with informational status — full AIR/EDA processing TBD

@@ -122,14 +122,7 @@ async function execute(data: ARWorkerMessage): Promise<void> {
     if (exportType === 'csv') {
       tempFilePath = await reportsService.exportCSV(data.reportId, 'saved', fromDate, toDate, interval, data.ownerId);
     } else if (exportType === 'excel') {
-      tempFilePath = await reportsService.exportExcel(
-        data.reportId,
-        'saved',
-        fromDate,
-        toDate,
-        interval,
-        data.ownerId,
-      );
+      tempFilePath = await reportsService.exportExcel(data.reportId, 'saved', fromDate, toDate, interval, data.ownerId);
     } else if (exportType === 'pdf') {
       tempFilePath = await reportsService.exportPDF(data.reportId, 'saved', fromDate, toDate, interval, data.ownerId);
     } else {
