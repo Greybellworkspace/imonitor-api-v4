@@ -12,7 +12,7 @@ Navigation hub for project context.
 
 ## Active Tracks
 
-_None — all tracks complete through Phase 4._
+_(none)_
 
 ## Completed Tracks
 
@@ -28,6 +28,7 @@ _None — all tracks complete through Phase 4._
 - [x] Phase 3.7: Processing (BulkProcessing, BulkEda, CdrDecoder, BillRun, Tariff)
 - [x] Phase 3.8: Automation & Admin
 - [x] Phase 3.9: Background Jobs (Scheduler + Workers)
+- [x] **[Phase 3.10: Env Centralization Tech Debt](./tracks/phase3.10-env-centralization_20260313/index.md)** — `v0.3.10-env-centralization`
 - [x] **[Phase 4: Socket.IO Gateways](./tracks/phase4-socketio_20260313/index.md)** — `v0.4.0-migration-phase4`
 
 ## Getting Started
