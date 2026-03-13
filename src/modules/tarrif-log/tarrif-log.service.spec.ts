@@ -1,10 +1,10 @@
-jest.mock('axios')
+jest.mock('axios');
 jest.mock('../../shared/helpers/common.helper', () => ({
   ...jest.requireActual('../../shared/helpers/common.helper'),
   generateGuid: jest.fn().mockReturnValue('test-guid-123'),
   fileExists: jest.fn().mockResolvedValue(true),
   isUndefinedOrNull: jest.fn().mockImplementation((v) => v === null || v === undefined),
-}))
+}));
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -219,9 +219,9 @@ describe('TarrifLogService', () => {
     it('should throw BadRequestException TARRIF_SAME_DATE when date equals compareDate', async () => {
       mockDateHelper.isAfterDate.mockReturnValue(false);
 
-      await expect(service.add({ date: '2026-03-01', compareDate: '2026-03-01', tarrifId: 123 }, TEST_USER_ID)).rejects.toThrow(
-        new BadRequestException(ErrorMessages.TARRIF_SAME_DATE),
-      );
+      await expect(
+        service.add({ date: '2026-03-01', compareDate: '2026-03-01', tarrifId: 123 }, TEST_USER_ID),
+      ).rejects.toThrow(new BadRequestException(ErrorMessages.TARRIF_SAME_DATE));
     });
 
     it('should throw BadRequestException TARRIF_NOT_CORRECT when tariff is not found', async () => {

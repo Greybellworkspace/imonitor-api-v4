@@ -84,11 +84,7 @@ describe('BulkProcessingController', () => {
 
       await controller.addProcess(file, 'My Bulk Job', 1, TEST_USER_ID);
 
-      expect(service.add).toHaveBeenCalledWith(
-        file,
-        { name: 'My Bulk Job', methodId: 1 },
-        TEST_USER_ID,
-      );
+      expect(service.add).toHaveBeenCalledWith(file, { name: 'My Bulk Job', methodId: 1 }, TEST_USER_ID);
     });
   });
 
@@ -101,11 +97,7 @@ describe('BulkProcessingController', () => {
 
       await controller.scheduleProcess(file, 'Scheduled Job', 2, date, TEST_USER_ID);
 
-      expect(service.schedule).toHaveBeenCalledWith(
-        file,
-        { name: 'Scheduled Job', methodId: 2, date },
-        TEST_USER_ID,
-      );
+      expect(service.schedule).toHaveBeenCalledWith(file, { name: 'Scheduled Job', methodId: 2, date }, TEST_USER_ID);
     });
   });
 
@@ -172,9 +164,7 @@ describe('BulkProcessingController', () => {
     it('should throw an Error when dto.id does not match param id', async () => {
       const dto = { id: 'different-id', name: 'Updated Name' };
 
-      await expect(controller.update(TEST_PROCESS_ID, dto, TEST_USER_ID)).rejects.toThrow(
-        'ID mismatch',
-      );
+      await expect(controller.update(TEST_PROCESS_ID, dto, TEST_USER_ID)).rejects.toThrow('ID mismatch');
       expect(service.update).not.toHaveBeenCalled();
     });
 

@@ -1,6 +1,11 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { AddBulkProcessDto, BulkListQueryDto, ScheduleBulkProcessDto, UpdateBulkProcessDto } from './bulk-processing.dto';
+import {
+  AddBulkProcessDto,
+  BulkListQueryDto,
+  ScheduleBulkProcessDto,
+  UpdateBulkProcessDto,
+} from './bulk-processing.dto';
 import { BulkMethodsType } from '../enums/bulk-process.enum';
 
 describe('AddBulkProcessDto', () => {
@@ -51,7 +56,12 @@ describe('UpdateBulkProcessDto', () => {
   });
 
   it('should validate with optional fields', async () => {
-    const dto = plainToInstance(UpdateBulkProcessDto, { id: 'uuid-123', name: 'Job', method: 'GetBalanceAndDate', date: '2026-03-15 10:00:00' });
+    const dto = plainToInstance(UpdateBulkProcessDto, {
+      id: 'uuid-123',
+      name: 'Job',
+      method: 'GetBalanceAndDate',
+      date: '2026-03-15 10:00:00',
+    });
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });

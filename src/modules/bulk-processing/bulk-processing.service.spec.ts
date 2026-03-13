@@ -118,9 +118,7 @@ describe('BulkProcessingService', () => {
 
   describe('list', () => {
     it('should return raw results from the query builder', async () => {
-      const expected = [
-        { id: TEST_PROCESS_ID, name: 'Job A', status: 'now', method: 'GetBalanceAndDate' },
-      ];
+      const expected = [{ id: TEST_PROCESS_ID, name: 'Job A', status: 'now', method: 'GetBalanceAndDate' }];
       systemConfig.getConfigValue.mockResolvedValue('%Y-%m-%d');
       bulkProcessRepo.createQueryBuilder.mockReturnValue(createMockQueryBuilder(expected));
 
@@ -416,9 +414,7 @@ describe('BulkProcessingService', () => {
     it('should throw NotFoundException when process does not exist', async () => {
       bulkProcessRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.download(TEST_PROCESS_ID, BulkProcessFileType.INPUT)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.download(TEST_PROCESS_ID, BulkProcessFileType.INPUT)).rejects.toThrow(NotFoundException);
     });
 
     it('should return the input file path when type is INPUT', async () => {
