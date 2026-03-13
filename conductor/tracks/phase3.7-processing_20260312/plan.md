@@ -85,20 +85,20 @@ Create the two missing TypeORM entities, all enums, all DTOs, and verify existin
 
 ### Tasks
 
-- [ ] Task 4.1: Create `CdrDecoderService` — inject `CoreCdrDecodeProcess` repo; implement `list(userId)` as raw SQL query on `CoreCdrDecodeProcess` (filter by `createdBy`)
-- [ ] Task 4.2: Implement `decode(file, name, userId)` — detect compression type (gzip/zip magic bytes), detect CDR file type from filename, save file to `assets/cdrDecoder/uploads/`, insert `CoreCdrDecodeProcess` record with `PROCESSING` status, fire worker asynchronously
-- [ ] Task 4.3: Implement `download(id, type, userId)` — query by id + createdBy, check status for OUTPUT type, verify file exists on disk
-- [ ] Task 4.4: Implement `delete(id, userId)` — query by id + createdBy, block if `PROCESSING`, delete both files, hard-delete DB record
-- [ ] Task 4.5: Create worker stub `src/scripts/worker/cdrDecoder.worker.ts` — receives `CdrDecoderWorkDto`, calls Python script (`cdrDecoder.script.py`), updates `CoreCdrDecodeProcess` status + recordCount; preserve original logic
-- [ ] Task 4.6: Ensure `src/scripts/cdrDecoder.script.py` is present (copy from v3 or create placeholder if absent)
-- [ ] Task 4.7: Create `CdrDecoderController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on decode endpoint, full Swagger
-- [ ] Task 4.8: Create `CdrDecoderModule` — import `SharedModule`, `TypeOrmModule.forFeature([CoreCdrDecodeProcess])`
+- [x] Task 4.1: Create `CdrDecoderService` — inject `CoreCdrDecodeProcess` repo; implement `list(userId)` as raw SQL query on `CoreCdrDecodeProcess` (filter by `createdBy`)
+- [x] Task 4.2: Implement `decode(file, name, userId)` — detect compression type (gzip/zip magic bytes), detect CDR file type from filename, save file to `assets/cdrDecoder/uploads/`, insert `CoreCdrDecodeProcess` record with `PROCESSING` status, fire worker asynchronously
+- [x] Task 4.3: Implement `download(id, type, userId)` — query by id + createdBy, check status for OUTPUT type, verify file exists on disk
+- [x] Task 4.4: Implement `delete(id, userId)` — query by id + createdBy, block if `PROCESSING`, delete both files, hard-delete DB record
+- [x] Task 4.5: Create worker stub `src/scripts/worker/cdrDecoder.worker.ts` — receives `CdrDecoderWorkDto`, calls Python script (`cdrDecoder.script.py`), updates `CoreCdrDecodeProcess` status + recordCount; preserve original logic
+- [x] Task 4.6: Ensure `src/scripts/cdrDecoder.script.py` is present (copy from v3 or create placeholder if absent)
+- [x] Task 4.7: Create `CdrDecoderController` — 4 endpoints, `@UseGuards(PrivilegeGuard)`, `FileInterceptor` on decode endpoint, full Swagger
+- [x] Task 4.8: Create `CdrDecoderModule` — import `SharedModule`, `TypeOrmModule.forFeature([CoreCdrDecodeProcess])`
 
 ### Verification
 
-- [ ] `npm run build` passes
-- [ ] `npm run lint` passes
-- [ ] Module registered in `AppModule`
+- [x] `npm run build` passes
+- [x] `npm run lint` passes
+- [x] Module registered in `AppModule`
 
 ---
 
