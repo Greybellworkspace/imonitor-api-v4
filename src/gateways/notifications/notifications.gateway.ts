@@ -47,7 +47,7 @@ export class NotificationsGateway implements OnGatewayInit, OnGatewayConnection,
 
   handleConnection(client: Socket): void {
     client.join(NotificationsGateway.ROOM);
-    const userId = client.handshake.query.id as string | undefined;
+    const userId = (client.data.user?.id ?? client.data.user?.userId) as string | undefined;
     if (userId) {
       this.addSocket(client.id, userId).catch((err: Error) => this.logger.error(`addSocket error: ${err.message}`));
     }

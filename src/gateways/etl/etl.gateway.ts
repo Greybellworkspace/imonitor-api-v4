@@ -1,5 +1,12 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayInit,
+  OnGatewayConnection,
+} from '@nestjs/websockets';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { Namespace, Socket } from 'socket.io';
@@ -14,7 +21,7 @@ import { ConnectivityGateway } from '../connectivity/connectivity.gateway';
 
 @Injectable()
 @WebSocketGateway({ namespace: '/etl', transports: ['websocket'] })
-export class EtlGateway implements OnGatewayConnection {
+export class EtlGateway implements OnGatewayInit, OnGatewayConnection {
   @WebSocketServer()
   server: Namespace;
 
@@ -31,6 +38,7 @@ export class EtlGateway implements OnGatewayConnection {
   private readonly limiter: Bottleneck;
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly dashboardGateway: DashboardGateway,
     private readonly connectivityGateway: ConnectivityGateway,
     private readonly widgetBuilderService: WidgetBuilderService,
@@ -41,6 +49,18 @@ export class EtlGateway implements OnGatewayConnection {
   ) {
     // No Redis backing — single process Bottleneck is sufficient here
     this.limiter = new Bottleneck({ maxConcurrent: 10, minTime: 100 });
+  }
+
+  afterInit(server: Namespace): void {
+    server.use((socket: Socket, next: (err?: Error) => void) => {
+      const apiKey = socket.handshake?.auth?.apiKey as string | undefined;
+      const expectedKey = this.configService.get<string>('ETL_API_KEY');
+      if (!expectedKey || apiKey !== expectedKey) {
+        next(new Error('Unauthorized'));
+        return;
+      }
+      next();
+    });
   }
 
   handleConnection(client: Socket): void {
@@ -155,7 +175,6 @@ export class EtlGateway implements OnGatewayConnection {
       this.dashboardGateway.server.to(socketId).emit(`${widgetBuilderId}_${chartId}`, {
         hasError: true,
         message: 'Chart not loaded',
-        error: err.stack,
       });
     }
   }

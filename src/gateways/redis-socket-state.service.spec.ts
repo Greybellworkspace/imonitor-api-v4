@@ -9,6 +9,7 @@ describe('RedisSocketStateService', () => {
   const mockRedis = {
     lrange: jest.fn(),
     rpush: jest.fn(),
+    expire: jest.fn(),
     del: jest.fn(),
     set: jest.fn(),
     get: jest.fn(),
@@ -35,10 +36,12 @@ describe('RedisSocketStateService', () => {
   });
 
   describe('rpush', () => {
-    it('should call redis.rpush with correct args', async () => {
+    it('should call redis.rpush with correct args and set TTL', async () => {
       mockRedis.rpush.mockResolvedValue(1);
+      mockRedis.expire.mockResolvedValue(1);
       await service.rpush('mylist', 'value');
       expect(mockRedis.rpush).toHaveBeenCalledWith('mylist', 'value');
+      expect(mockRedis.expire).toHaveBeenCalledWith('mylist', 86400);
     });
   });
 
@@ -51,10 +54,10 @@ describe('RedisSocketStateService', () => {
   });
 
   describe('set', () => {
-    it('should call redis.set with key and value', async () => {
+    it('should call redis.set with key, value, and TTL', async () => {
       mockRedis.set.mockResolvedValue('OK');
       await service.set('mykey', 'myvalue');
-      expect(mockRedis.set).toHaveBeenCalledWith('mykey', 'myvalue');
+      expect(mockRedis.set).toHaveBeenCalledWith('mykey', 'myvalue', 'EX', 86400);
     });
   });
 

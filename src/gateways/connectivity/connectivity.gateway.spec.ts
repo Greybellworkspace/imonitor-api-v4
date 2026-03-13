@@ -28,14 +28,14 @@ describe('ConnectivityGateway', () => {
     in: jest.fn().mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([]) }),
   };
 
-  function buildClient(id = 'conn-socket-1', queryId?: string): Partial<Socket> & { emit: jest.Mock; join: jest.Mock } {
+  function buildClient(id = 'conn-socket-1', userId?: string): Partial<Socket> & { emit: jest.Mock; join: jest.Mock } {
     return {
       id,
       handshake: {
         auth: {},
-        query: queryId ? { id: queryId } : {},
+        query: {},
       } as unknown as Socket['handshake'],
-      data: {},
+      data: userId ? { user: { id: userId } } : {},
       emit: jest.fn(),
       join: jest.fn(),
     };
@@ -79,7 +79,7 @@ describe('ConnectivityGateway', () => {
       expect(client.emit).toHaveBeenCalledWith('fetchData', result);
     });
 
-    it('should not call addSocket when query.id is absent', () => {
+    it('should not call addSocket when userId is absent', () => {
       const client = buildClient('s1');
       gateway.handleConnection(client as unknown as Socket);
       expect(mockRedisState.set).not.toHaveBeenCalled();

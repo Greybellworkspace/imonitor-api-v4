@@ -7,6 +7,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -33,6 +34,7 @@ export class DashboardGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   constructor(
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly widgetBuilderService: WidgetBuilderService,
     private readonly redisState: RedisSocketStateService,
     private readonly legacyDataDb: LegacyDataDbService,
@@ -109,7 +111,6 @@ export class DashboardGateway implements OnGatewayInit, OnGatewayConnection, OnG
       client.emit(`${widgetBuilderId}_${chartId}`, {
         hasError: true,
         message: 'Chart not loaded',
-        error: err.stack,
       });
     }
   }
@@ -153,7 +154,7 @@ export class DashboardGateway implements OnGatewayInit, OnGatewayConnection, OnG
     // Analytics: insert opened dashboard count — fire-and-forget
     const socketCount = Object.keys(clientMap).length;
     const statDate = this.dateHelper.formatDate();
-    const dbDataName = process.env.DB_DATA_NAME;
+    const dbDataName = this.configService.get<string>('DB_DATA_NAME');
     if (dbDataName) {
       this.legacyDataDb
         .affectedQuery(

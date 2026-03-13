@@ -98,7 +98,6 @@ export class ObservabilityDashboardGateway implements OnGatewayInit, OnGatewayCo
       client.emit(chartId, {
         hasError: true,
         message: 'Chart not loaded',
-        error: err.stack,
       });
     }
   }

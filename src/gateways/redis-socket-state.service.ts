@@ -19,10 +19,11 @@ export class RedisSocketStateService {
   }
 
   /**
-   * Appends a value to the tail of a Redis list (RPUSH).
+   * Appends a value to the tail of a Redis list (RPUSH) and refreshes its TTL.
    */
-  async rpush(key: string, value: string): Promise<void> {
+  async rpush(key: string, value: string, ttlSeconds = 86400): Promise<void> {
     await this.redis.rpush(key, value);
+    await this.redis.expire(key, ttlSeconds);
   }
 
   /**
@@ -33,10 +34,10 @@ export class RedisSocketStateService {
   }
 
   /**
-   * Sets a string key-value pair (SET).
+   * Sets a string key-value pair (SET) with a TTL to prevent orphaned keys.
    */
-  async set(key: string, value: string): Promise<void> {
-    await this.redis.set(key, value);
+  async set(key: string, value: string, ttlSeconds = 86400): Promise<void> {
+    await this.redis.set(key, value, 'EX', ttlSeconds);
   }
 
   /**

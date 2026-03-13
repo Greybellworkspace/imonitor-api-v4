@@ -64,7 +64,7 @@ async function bootstrap() {
   const redisPort = configService.get<number>('REDIS_PORT', 6379);
   const redisPassword = configService.get<string>('REDIS_PASSWORD', '');
   const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis(redisHost, redisPort, redisPassword || undefined);
+  await redisIoAdapter.connectToRedis(redisHost, redisPort, redisPassword || undefined, corsOrigin);
   app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(port);

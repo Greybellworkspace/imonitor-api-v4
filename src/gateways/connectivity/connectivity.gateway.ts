@@ -52,7 +52,7 @@ export class ConnectivityGateway implements OnGatewayInit, OnGatewayConnection, 
   handleConnection(client: Socket): void {
     client.join(ConnectivityGateway.ROOM);
 
-    const userId = client.handshake.query.id as string | undefined;
+    const userId = (client.data.user?.id ?? client.data.user?.userId) as string | undefined;
     if (userId) {
       // Persist socket → userId mapping then push initial data
       this.addSocket(client.id, userId)

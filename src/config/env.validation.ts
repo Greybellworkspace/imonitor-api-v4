@@ -13,6 +13,10 @@ export const envValidationSchema = Joi.object({
   coreDbName: Joi.string().default('`iMonitorV3_1`'),
   dataDbName: Joi.string().default('`iMonitorData`'),
   etlDbName: Joi.string().default('`EtlV3_2`'),
+  DB_DATA_NAME: Joi.string().default('iMonitorData'),
+
+  // Socket.IO
+  ETL_API_KEY: Joi.string().allow('').default(''),
 
   // Application
   PORT: Joi.number().default(5011),
