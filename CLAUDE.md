@@ -15,7 +15,7 @@ NestJS migration of enterprise telecom monitoring API. Express.js v3 → NestJS 
 ```bash
 npm run build          # TypeScript compilation — MUST pass before commit
 npm run lint           # ESLint + Prettier — MUST pass before commit
-npm test               # Jest unit tests — 1318 tests, 74 suites
+npm test               # Jest unit tests — 1337 tests, 75 suites
 npm run test:cov       # Coverage report
 npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 ```
@@ -35,7 +35,7 @@ npm run test:e2e       # E2E tests (scaffold only until Phase 5)
 | 3.6: Customer Care | `migration/phase-3.6-customer-care` | Done | `v0.3.6-migration-phase3.6` |
 | 3.7: Processing | `migration/phase-3.7-processing` | Done | `v0.3.7-migration-phase3.7` |
 | 3.8: Automation & Admin | `migration/phase-3.8-automation-admin` | Done | `v0.3.8-migration-phase3.8` |
-| 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Pending | — |
+| 3.9: Background Jobs | `migration/phase-3.9-background-jobs` | Done | `v0.3.9-migration-phase3.9` |
 | 4: Socket.IO | `migration/phase-4-socketio` | Pending | — |
 | 5: Testing & Validation | `migration/phase-5-testing` | Pending | `v1.0.0-nestjs-migration` |
 | 6: Parallel API Verification | `migration/phase-6-parallel-verification` | Pending | `v1.1.0-parallel-verified` |
@@ -237,6 +237,16 @@ POST `/tablefields/:tableType` `/module`
 
 ### Health (`/health`) — Public
 DB ping, Redis ping, Memory heap 256MB
+
+### Scheduler (no HTTP endpoints — background cron jobs)
+- `*/1 * * * *` — `runAutomatedReports` (forks `automatedReport.worker.js` per pending AR)
+- `0 0 1 * *` — `runRetentionCleaning` (forks `automatedReportRetentionCleaning.worker.js`)
+- `*/10 * * * *` — `runScheduledBulkProcess` (forks `scheduledBulkProcess.worker.js`)
+- dynamic (from `core_sys_config.cleanUpCron`) — `runRequestArchiveCleanup` (forks `requestArchiveCleanup.worker.js`)
+- `0 1 * * *` — `runRequestArchiveRetention` (forks `databaseRetentionCleanup.worker.js`)
+- `*/1 * * * *` — `runObservabilityAlarms` (forks `observabilityAlarms.worker.js`)
+
+Workers location: `src/scripts/worker/` (all compile to `dist/scripts/worker/*.worker.js`)
 
 ## Testing Conventions
 
